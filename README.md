@@ -2,6 +2,123 @@
 
 Данный документ содержит полную архитектуру проекта, разделенную по лабораторным работам и логическим веткам. Нажмите на название диаграммы, чтобы раскрыть её.
 
+<details>
+<summary><b>🌟 ОБЩАЯ АРХИТЕКТУРА ПРОЕКТА (ЛР1 + ЛР2)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Здесь представлена полная картина взаимодействия всех компонентов. Видно, как доменная сущность `Part` (ЛР1) отделена от слоя хранения данных (`PartRepository`), а паттерны Observer, Strategy, Adapter, Singleton и Decorator гармонично дополняют друг друга.
+
+```mermaid
+classDiagram
+    %% ================== ЛР1: Домен и Обсервер ==================
+    class Part {
+        -list _observers
+        +attach(obs)
+        +detach_all()
+        +_notify()
+    }
+
+    class LiveProjection {
+        +update(subject)
+        +is_alive : bool
+    }
+    
+    class ShortPartDTO {
+        <<immutable>>
+    }
+
+    class Refresher {
+        +make(part, producer)
+        +purge()
+    }
+
+    class PartManager {
+        -dict _parts
+        +add(part)
+        +remove(part)
+    }
+
+    Part "1" o-- "*" LiveProjection : notify
+    LiveProjection --> "1" ShortPartDTO : holds
+    Refresher o-- "*" LiveProjection : manages
+    PartManager o-- "*" Part : stores
+    PartManager o-- Refresher : uses
+
+    %% ================== ЛР2: Интерфейс и Декораторы ==================
+    class PartRepository {
+        <<abstract>>
+        +get_by_id(id)
+        +add(part)
+        +get_count()
+    }
+
+    class PartRepositoryDecorator {
+        <<abstract>>
+        #PartRepository _wrapped
+    }
+
+    class FilterSortDecorator {
+        -filter_fn
+        -sort_key
+    }
+
+    PartRepository <|-- PartRepositoryDecorator
+    PartRepositoryDecorator <|-- FilterSortDecorator
+    PartRepositoryDecorator o-- PartRepository : wraps
+
+    %% ================== ЛР2: Файлы (Стратегия) ==================
+    class PartRepFile {
+        <<abstract>>
+        #_path
+        #_serializer
+    }
+
+    class PartRepJSON
+    class PartRepYAML
+
+    class Serializer {
+        <<interface>>
+    }
+    
+    class JsonSerializer
+    class YamlSerializer
+    
+    class SerializerRegistry {
+        +get(name) Serializer
+    }
+
+    PartRepository <|-- PartRepFile
+    PartRepFile <|-- PartRepJSON
+    PartRepFile <|-- PartRepYAML
+    PartRepFile o-- Serializer : delegates
+    Serializer <|-- JsonSerializer
+    Serializer <|-- YamlSerializer
+    SerializerRegistry ..> Serializer : creates
+
+    %% ================== ЛР2: База Данных (Адаптер + Синглтон) ==================
+    class PartRepDBAdapter {
+        -PartRepDB _db
+    }
+
+    class PartRepDB {
+        -DBConnection _conn
+    }
+
+    class DBConnection {
+        <<Singleton>>
+        -_instance
+    }
+
+    PartRepository <|-- PartRepDBAdapter
+    PartRepDBAdapter o-- PartRepDB : delegates
+    PartRepDB o-- DBConnection : uses
+    
+    %% Зависимости от домена (что возвращают репозитории)
+    PartRepository ..> Part : returns
+    PartRepository ..> ShortPartDTO : returns
+```
+
+</details>
 ## Лабораторная работа №1 (Домен и Observer)
 
 <details>
