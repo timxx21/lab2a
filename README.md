@@ -119,6 +119,7 @@ classDiagram
 ```
 
 </details>
+
 ## Лабораторная работа №1 (Домен и Observer)
 
 <details>
