@@ -1,17 +1,22 @@
 # Лабораторные работы №1 и №2 — Архитектура проекта
 
-Данный документ содержит полную архитектуру проекта, разделенную по лабораторным работам и логическим веткам.
+Данный документ содержит полную архитектуру проекта, разделенную по лабораторным работам и логическим веткам. Нажмите на название диаграммы, чтобы раскрыть её.
 
 ## Лабораторная работа №1 (Домен и Observer)
 
-### 1. Ядро: Домен и живые проекции (Observer)
+<details>
+<summary><b>1. Ядро: Домен и живые проекции (Observer)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
 На этой диаграмме видно, как `Part` (Subject) уведомляет `LiveProjection` (Observer) об изменениях, а `Refresher` управляет их жизненным циклом.
 
 ```mermaid
 classDiagram
     class Part {
         -list _observers
-        -_article / _name / _price
+        -_article
+        -_name
+        -_price
         +attach(obs)
         +detach(obs)
         +detach_all()
@@ -48,7 +53,12 @@ classDiagram
     ShortPart ..> ShortPartDTO : creates
 ```
 
-### 2. Вспомогательные ветки: Парсеры и Менеджер
+</details>
+
+<details>
+<summary><b>2. Вспомогательные ветки: Парсеры и Менеджер</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
 Инструменты для создания объекта из разных форматов и in-memory репозиторий для демонстрации.
 
 ```mermaid
@@ -75,9 +85,14 @@ classDiagram
     PartManager o-- Refresher : uses
 ```
 
+</details>
+
 ## Лабораторная работа №2 (Репозитории)
 
-### 1. Ветка работы с файлами (Паттерны Стратегия и Реестр)
+<details>
+<summary><b>1. Ветка работы с файлами (Стратегия и Реестр)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
 Показывает, как решается проблема дублирования кода между JSON и YAML. Вся логика в базовом `PartRepFile`, а формат вынесен в стратегии `Serializer`.
 
 ```mermaid
@@ -119,7 +134,12 @@ classDiagram
     PartRepYAML ..> SerializerRegistry : uses
 ```
 
-### 2. Ветка работы с БД (Паттерны Синглтон и Адаптер)
+</details>
+
+<details>
+<summary><b>2. Ветка работы с БД (Синглтон и Адаптер)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
 `DBConnection` (Синглтон) управляет единственным соединением. `PartRepDBAdapter` (Адаптер) встраивает SQL-репозиторий в общую иерархию.
 
 ```mermaid
@@ -148,7 +168,12 @@ classDiagram
     PartRepDB o-- DBConnection : uses
 ```
 
-### 3. Ветка Декораторов (Фильтр и Сортировка)
+</details>
+
+<details>
+<summary><b>3. Ветка Декораторов (Фильтр и Сортировка)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
 Паттерн Декоратор позволяет добавить фильтрацию и сортировку поверх любого репозитория.
 
 ```mermaid
@@ -174,3 +199,5 @@ classDiagram
     PartRepositoryDecorator <|-- FilterSortDecorator
     PartRepositoryDecorator o-- PartRepository : wraps
 ```
+
+</details>
