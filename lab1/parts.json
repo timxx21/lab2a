@@ -1,0 +1,83 @@
+[
+  {
+    "id": 1,
+    "article": "A1",
+    "name": "Диск",
+    "price": 4500.0,
+    "manufacturer": "Bosch",
+    "weight": 5.2,
+    "warranty_months": 12
+  },
+  {
+    "id": 2,
+    "article": "B2",
+    "name": "Фильтр",
+    "price": 800.0,
+    "manufacturer": "Mann",
+    "weight": 0.3,
+    "warranty_months": 6
+  },
+  {
+    "id": 3,
+    "article": "C3",
+    "name": "Свеча",
+    "price": 300.0,
+    "manufacturer": "NGK",
+    "weight": 0.1,
+    "warranty_months": 6
+  },
+  {
+    "id": 4,
+    "article": "A2",
+    "name": "Диск",
+    "price": 4500.0,
+    "manufacturer": "Bosch",
+    "weight": 5.2,
+    "warranty_months": 12
+  },
+  {
+    "id": 5,
+    "article": "B3",
+    "name": "Фильтр",
+    "price": 800.0,
+    "manufacturer": "Mann",
+    "weight": 0.3,
+    "warranty_months": 6
+  },
+  {
+    "id": 6,
+    "article": "C4",
+    "name": "Свеча",
+    "price": 300.0,
+    "manufacturer": "NGK",
+    "weight": 0.1,
+    "warranty_months": 6
+  },
+  {
+    "id": 7,
+    "article": "A5",
+    "name": "Диск",
+    "price": 4500.0,
+    "manufacturer": "Bosch",
+    "weight": 5.2,
+    "warranty_months": 12
+  },
+  {
+    "id": 8,
+    "article": "B5",
+    "name": "Фильтр",
+    "price": 800.0,
+    "manufacturer": "Mann",
+    "weight": 0.3,
+    "warranty_months": 6
+  },
+  {
+    "id": 9,
+    "article": "C5",
+    "name": "Свеча",
+    "price": 300.0,
+    "manufacturer": "NGK",
+    "weight": 0.1,
+    "warranty_months": 6
+  }
+]

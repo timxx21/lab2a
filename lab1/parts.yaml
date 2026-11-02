@@ -1,0 +1,14 @@
+- id: 1
+  article: D4
+  name: Амортизатор
+  price: 3500.0
+  manufacturer: Kayaba
+  weight: 2.1
+  warranty_months: 12
+- id: 2
+  article: D6
+  name: Амортизатор
+  price: 3500.0
+  manufacturer: Kayaba
+  weight: 2.1
+  warranty_months: 12
