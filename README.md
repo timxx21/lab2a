@@ -1,9 +1,10 @@
-# Лабораторная работа №1 (Домен и Observer)
+# Лабораторные работы №1 и №2 — Архитектура проекта
 
-Здесь описаны доменные сущности, паттерн Observer и менеджер, работающие с сущностью `Part`.
+Данный документ содержит полную архитектуру проекта, разделенную по лабораторным работам и логическим веткам.
 
-## 1. Ядро: Домен и живые проекции (Observer)
+## Лабораторная работа №1 (Домен и Observer)
 
+### 1. Ядро: Домен и живые проекции (Observer)
 На этой диаграмме видно, как `Part` (Subject) уведомляет `LiveProjection` (Observer) об изменениях, а `Refresher` управляет их жизненным циклом.
 
 ```mermaid
@@ -16,7 +17,6 @@ classDiagram
         +detach_all()
         +_notify()
     }
-
     class LiveProjection {
         -Part _part
         -ShortPartDTO _dto
@@ -24,31 +24,153 @@ classDiagram
         +is_alive : bool
         +close()
     }
-
     class ShortPartDTO {
         <<immutable>>
         +fields
         +to_dict()
     }
-
     class Refresher {
         -list _live
         +make(part, producer)
         +purge()
         +remove_part(part)
     }
-
     class ShortPart {
         <<factory>>
         +_short_data(part)
         +_warranty_data(part)
         +live_short_dto(part)
     }
-
     Part "1" o-- "*" LiveProjection : notify
     LiveProjection --> "1" ShortPartDTO : holds
     Refresher o-- "*" LiveProjection : manages
     ShortPart ..> LiveProjection : creates
     ShortPart ..> ShortPartDTO : creates
+```
 
+### 2. Вспомогательные ветки: Парсеры и Менеджер
+Инструменты для создания объекта из разных форматов и in-memory репозиторий для демонстрации.
 
+```mermaid
+classDiagram
+    class Part {
+        +from_dict(data)
+    }
+    class PartParser {
+        -dict _parsers
+        +register(name)
+        +parse(data, fmt) Part
+        +available()
+    }
+    class PartManager {
+        -dict _parts
+        -Refresher _refresher
+        +add(part)
+        +remove(part)
+        +get(article)
+    }
+    class Refresher
+    PartParser ..> Part : creates
+    PartManager o-- "*" Part : stores
+    PartManager o-- Refresher : uses
+```
+
+## Лабораторная работа №2 (Репозитории)
+
+### 1. Ветка работы с файлами (Паттерны Стратегия и Реестр)
+Показывает, как решается проблема дублирования кода между JSON и YAML. Вся логика в базовом `PartRepFile`, а формат вынесен в стратегии `Serializer`.
+
+```mermaid
+classDiagram
+    class PartRepository {
+        <<abstract>>
+        +get_by_id(id)
+        +add(part)
+        +get_count()
+    }
+    class PartRepFile {
+        <<abstract>>
+        #_path
+        #_serializer
+        +read()
+        +write()
+    }
+    class PartRepJSON
+    class PartRepYAML
+    class Serializer {
+        <<interface>>
+        +dump(records)
+        +load(text)
+    }
+    class JsonSerializer
+    class YamlSerializer
+    class SerializerRegistry {
+        +register(name)
+        +get(name) Serializer
+    }
+    PartRepository <|-- PartRepFile
+    PartRepFile <|-- PartRepJSON
+    PartRepFile <|-- PartRepYAML
+    PartRepFile o-- Serializer : delegates to
+    Serializer <|-- JsonSerializer
+    Serializer <|-- YamlSerializer
+    SerializerRegistry ..> Serializer : creates
+    PartRepJSON ..> SerializerRegistry : uses
+    PartRepYAML ..> SerializerRegistry : uses
+```
+
+### 2. Ветка работы с БД (Паттерны Синглтон и Адаптер)
+`DBConnection` (Синглтон) управляет единственным соединением. `PartRepDBAdapter` (Адаптер) встраивает SQL-репозиторий в общую иерархию.
+
+```mermaid
+classDiagram
+    class PartRepository {
+        <<abstract>>
+    }
+    class PartRepDBAdapter {
+        -PartRepDB _db
+        +get_by_id(id) Part
+        +add(part) int
+    }
+    class PartRepDB {
+        -DBConnection _conn
+        +select_by_id(id) dict
+        +insert(record) int
+    }
+    class DBConnection {
+        <<Singleton>>
+        -_instance
+        +fetch_one()
+        +execute_commit()
+    }
+    PartRepository <|-- PartRepDBAdapter
+    PartRepDBAdapter o-- PartRepDB : delegates to
+    PartRepDB o-- DBConnection : uses
+```
+
+### 3. Ветка Декораторов (Фильтр и Сортировка)
+Паттерн Декоратор позволяет добавить фильтрацию и сортировку поверх любого репозитория.
+
+```mermaid
+classDiagram
+    class PartRepository {
+        <<abstract>>
+        +get_k_n_short_list(k, n)
+        +get_count()
+    }
+    class PartRepositoryDecorator {
+        <<abstract>>
+        #PartRepository _wrapped
+        +get_k_n_short_list(k, n)
+        +get_count()
+    }
+    class FilterSortDecorator {
+        -filter_fn
+        -sort_key
+        +get_k_n_short_list(k, n)
+        +get_count()
+    }
+    PartRepository <|-- PartRepositoryDecorator
+    PartRepositoryDecorator <|-- FilterSortDecorator
+    PartRepositoryDecorator o-- PartRepository : wraps
+```
