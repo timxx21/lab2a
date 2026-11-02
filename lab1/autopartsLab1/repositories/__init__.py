@@ -29,4 +29,5 @@ __all__ = [
     "PartRepDBAdapter",
     "PartRepositoryDecorator",
     "FilterSortDecorator",
+    "CompositePartRepository"
 ]

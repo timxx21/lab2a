@@ -27,3 +27,6 @@ class PartRepository(ABC):
     @abstractmethod
     def get_count(self) -> int:
         ...
+    @abstractmethod
+    def add_with_id(self, id_: int, part) -> int:
+        ...

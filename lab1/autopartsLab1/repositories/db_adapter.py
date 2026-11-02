@@ -51,6 +51,9 @@ class PartRepDBAdapter(PartRepository):
 
     # ---------- PartRepository ----------
 
+    def add_with_id(self, id_: int, part: Part) -> int:
+        return self._db.insert_with_id(id_, self._part_to_row(part))
+    
     def get_by_id(self, id_: int) -> Part:
         row = self._db.select_by_id(id_)
         if row is None:

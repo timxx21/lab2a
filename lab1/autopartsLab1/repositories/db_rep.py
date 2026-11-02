@@ -47,6 +47,15 @@ class PartRepDB:
              record["manufacturer"], record["weight"],
              record["warranty_months"], id_),
         )
+    def insert_with_id(self, id_: int, record: dict) -> int:
+        return self._conn.execute_commit(
+            "INSERT INTO parts "
+            "(id, article, name, price, manufacturer, weight, warranty_months) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (id_, record["article"], record["name"], record["price"],
+             record["manufacturer"], record["weight"],
+             record["warranty_months"]),
+        )
 
     def delete_record(self, id_: int) -> None:
         self._conn.execute_commit(

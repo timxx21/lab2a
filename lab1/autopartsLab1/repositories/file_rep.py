@@ -81,6 +81,19 @@ class PartRepFile(PartRepository):
 
     # ---------- PartRepository ----------
 
+    def add_with_id(self, id_: int, part: Part) -> int:
+        if id_ in self._items:
+            raise ValueError(f"Part with id={id_} уже существует")
+
+        # Проверка на дубликат артикула
+        for existing in self._items.values():
+            if existing.article == part.article:
+                raise ValueError(f"Part with article={part.article} уже существует")
+
+        self._items[id_] = part
+        self._next_id = max(self._next_id, id_ + 1)
+        return id_
+
     def get_by_id(self, id_: int) -> Part:
         if id_ not in self._items:
             raise KeyError(f"Part with id={id_} not found")

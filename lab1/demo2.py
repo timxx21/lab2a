@@ -52,7 +52,7 @@ def demo_db():
     print("by id:", rep.get_by_id(new_id))
     print("count:", rep.get_count())
     print("page:", rep.get_k_n_short_list(5, 1))
-
+    print("count:", repjs.get_count())
     new_id = rep.add(Part("E10", "Помпа дешманская", 500, "Hepu", 1.8, 18))
     print("added id:", new_id)
     print("by id:", rep.get_by_id(new_id))
@@ -69,5 +69,6 @@ def demo_db():
 
 
 if __name__ == "__main__":
+    repjs = PartRepJSON("parts2.json")
     demo_files()
     demo_db()
