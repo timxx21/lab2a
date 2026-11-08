@@ -68,3 +68,25 @@ class CompositePartRepository(PartRepository):
         for rep in [self._primary] + self._replicas:
             if hasattr(rep, "write"):
                 rep.write()
+
+    def resync(self) -> None:
+        """
+        Полностью перезаписывает реплики (файлы) данными из primary (БД).
+        Удаляет из файлов всё, чего нет в БД.
+        """
+        total = self._primary.get_count()
+        if total == 0:
+            primary_items = []
+        else:
+            dtos = self._primary.get_k_n_short_list(total, 1)
+            primary_items = [(dto["id"], self._primary.get_by_id(dto["id"])) for dto in dtos]
+
+        for rep in self._replicas:
+            current_count = rep.get_count()
+            if current_count > 0:
+                current_dtos = rep.get_k_n_short_list(current_count, 1)
+                for dto in current_dtos:
+                    rep.delete(dto["id"])
+
+            for id_, part in primary_items:
+                rep.add_with_id(id_, part)

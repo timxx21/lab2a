@@ -1,83 +1,65 @@
 [
   {
     "id": 1,
-    "article": "A1",
-    "name": "Диск",
-    "price": 4500.0,
-    "manufacturer": "Bosch",
-    "weight": 5.2,
-    "warranty_months": 12
-  },
-  {
-    "id": 2,
-    "article": "B2",
-    "name": "Фильтр",
-    "price": 800.0,
-    "manufacturer": "Mann",
-    "weight": 0.3,
-    "warranty_months": 6
+    "article": "E5",
+    "name": "Помпа",
+    "price": 5000.0,
+    "manufacturer": "Hepu",
+    "weight": 1.8,
+    "warranty_months": 18
   },
   {
     "id": 3,
-    "article": "C3",
-    "name": "Свеча",
-    "price": 300.0,
-    "manufacturer": "NGK",
-    "weight": 0.1,
-    "warranty_months": 6
+    "article": "E6",
+    "name": "Помпа",
+    "price": 2000.0,
+    "manufacturer": "Hepu",
+    "weight": 1.8,
+    "warranty_months": 18
   },
   {
     "id": 4,
-    "article": "A2",
-    "name": "Диск",
-    "price": 4500.0,
-    "manufacturer": "Bosch",
-    "weight": 5.2,
-    "warranty_months": 12
+    "article": "E7",
+    "name": "Помпа дешманская",
+    "price": 500.0,
+    "manufacturer": "Hepu",
+    "weight": 1.8,
+    "warranty_months": 18
   },
   {
     "id": 5,
-    "article": "B3",
-    "name": "Фильтр",
-    "price": 800.0,
-    "manufacturer": "Mann",
-    "weight": 0.3,
-    "warranty_months": 6
+    "article": "E9",
+    "name": "Помпа",
+    "price": 2000.0,
+    "manufacturer": "Hepu",
+    "weight": 1.8,
+    "warranty_months": 18
   },
   {
     "id": 6,
-    "article": "C4",
-    "name": "Свеча",
-    "price": 300.0,
-    "manufacturer": "NGK",
-    "weight": 0.1,
-    "warranty_months": 6
+    "article": "E10",
+    "name": "Помпа дешманская",
+    "price": 500.0,
+    "manufacturer": "Hepu",
+    "weight": 1.8,
+    "warranty_months": 18
   },
   {
     "id": 7,
-    "article": "A5",
-    "name": "Диск",
-    "price": 4500.0,
+    "article": "SYNC-1",
+    "name": "Синхронный фильтр (NEW)",
+    "price": 2000.0,
     "manufacturer": "Bosch",
-    "weight": 5.2,
+    "weight": 1.2,
     "warranty_months": 12
   },
   {
-    "id": 8,
-    "article": "B5",
-    "name": "Фильтр",
-    "price": 800.0,
-    "manufacturer": "Mann",
-    "weight": 0.3,
-    "warranty_months": 6
-  },
-  {
-    "id": 9,
-    "article": "C5",
-    "name": "Свеча",
-    "price": 300.0,
-    "manufacturer": "NGK",
-    "weight": 0.1,
-    "warranty_months": 6
+    "id": 14,
+    "article": "SYNC-1652",
+    "name": "Синхронный фильтр (NEW)",
+    "price": 2000.0,
+    "manufacturer": "Bosch",
+    "weight": 1.2,
+    "warranty_months": 12
   }
 ]

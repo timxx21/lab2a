@@ -22,8 +22,7 @@ from .repositories import (
     PartRepDB,
     PartRepDBAdapter,
     PartRepositoryDecorator,
-    FilterSortDecorator,
-    CompositePartRepository,
+    FilterSortDecorator, CompositePartRepository,
 )
 
 __all__ = [
@@ -35,7 +34,7 @@ __all__ = [
     "JsonSerializer", "YamlSerializer",
     "PartRepFile", "PartRepJSON", "PartRepYAML",
     "DBConnection", "PartRepDB", "PartRepDBAdapter",
-    "PartRepositoryDecorator", "FilterSortDecorator", "CompositePartRepository"
+    "PartRepositoryDecorator", "FilterSortDecorator", "CompositePartRepository",
 ]
 
 __version__ = "0.3.0"

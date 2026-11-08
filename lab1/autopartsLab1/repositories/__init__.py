@@ -14,6 +14,7 @@ from .db_connection import DBConnection
 from .db_rep import PartRepDB
 from .db_adapter import PartRepDBAdapter
 from .decorators import PartRepositoryDecorator, FilterSortDecorator
+from .composite import CompositePartRepository
 
 __all__ = [
     "PartRepository",
