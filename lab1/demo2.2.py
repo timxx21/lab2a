@@ -1,15 +1,16 @@
 from autopartsLab1 import (
     Part, PartRepJSON, PartRepYAML,
     DBConnection, PartRepDB, PartRepDBAdapter,
-    CompositePartRepository
+    CompositePartRepository, FilterSortDecorator
 )
 
 def main():
     print("=== Демонстрация синхронизации БД, JSON и YAML ===\n")
 
     # 1. Инициализация файловых репозиториев
-    rep_json = PartRepJSON("parts.json")
-    rep_yaml = PartRepYAML("parts.yaml")
+    backup_json = PartRepJSON("backup_parts.json")
+    backup_yaml = PartRepYAML("backup_parts.yaml")
+
 
     # 2. Инициализация БД
     try:
@@ -22,7 +23,7 @@ def main():
         return
 
     # 3. Создаем Composite
-    composite = CompositePartRepository(db_adapter, rep_json, rep_yaml)
+    composite = CompositePartRepository(db_adapter, backup_json, backup_yaml)
     print("Синхронизация файлов с базой данных...")
     composite.resync()
     composite.flush()
@@ -41,8 +42,8 @@ def main():
 
     # ПРОВЕРКА:
     print(f"Из БД  : {db_adapter.get_by_id(new_id).name}")
-    print(f"Из JSON: {rep_json.get_by_id(new_id).name}")
-    print(f"Из YAML: {rep_yaml.get_by_id(new_id).name}")
+    print(f"Из JSON: {backup_json.get_by_id(new_id).name}")
+    print(f"Из YAML: {backup_yaml.get_by_id(new_id).name}")
 
     # --- 2. ОБНОВЛЕНИЕ ---
     print("\n--- 2. Обновляем деталь (меняем цену) ---")
@@ -53,9 +54,9 @@ def main():
 
     # ПРОВЕРКА (обращаемся через точку .price):
     print(f"Новая цена в БД  : {db_adapter.get_by_id(new_id).price}")
-    print(f"Новая цена в JSON: {rep_json.get_by_id(new_id).price}")
-    print(f"Новая цена в YAML: {rep_yaml.get_by_id(new_id).price}")
-"""
+    print(f"Новая цена в JSON: {backup_json.get_by_id(new_id).price}")
+    print(f"Новая цена в YAML: {backup_yaml.get_by_id(new_id).price}")
+
     # --- 3. УДАЛЕНИЕ ---
     print("\n--- 3. Удаляем деталь ---")
     composite.delete(new_id)
@@ -70,12 +71,30 @@ def main():
         print("В БД его нет.")
 
     try:
-        rep_json.get_by_id(new_id)
+        backup_json.get_by_id(new_id)
         print("ОШИБКА: Объект всё еще в JSON!")
     except KeyError:
         print("В JSON его нет.")
 
-"""
+    print("\n--- 4. ЭКСПОРТ С ПОМОЩЬЮ ПАТТЕРНА ДЕКОРАТОР ---")
+    print("Задача: Выгрузить из БД в ОТДЕЛЬНЫЕ файлы только детали с ценой > 2000.")
+
+
+    db_filtered = FilterSortDecorator(
+        wrapped=db_adapter,
+        filter_fn=lambda dto: dto["price"] > 2000,
+        sort_key="price"
+    )
+
+    # СОЗДАЕМ ЭКСПОРТНЫЕ ФАЙЛЫ
+    export_json = PartRepJSON("export_parts.json")
+    export_yaml = PartRepYAML("export_parts.yaml")
+
+    # ВЫЗЫВАЕМ НОВЫЙ МЕТОД КОМПОЗИТА
+    composite.export_to(
+        source_repo=db_filtered,
+        target_repositories=[export_json, export_yaml]
+    )
 
 
 if __name__ == "__main__":

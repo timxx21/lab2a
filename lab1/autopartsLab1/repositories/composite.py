@@ -90,3 +90,34 @@ class CompositePartRepository(PartRepository):
 
             for id_, part in primary_items:
                 rep.add_with_id(id_, part)
+
+    def export_to(self, source_repo, target_repositories: list) -> None:
+        """
+        Экспортирует данные из source_repo в указанные репозитории.
+        """
+        print("Подготовка данных для экспорта...")
+
+        total = source_repo.get_count()
+        if total == 0:
+            print("Источник пуст, экспортировать нечего.")
+            return
+
+        dtos = source_repo.get_k_n_short_list(total, 1)
+        print(f"Отобрано {len(dtos)} записей для экспорта.")
+
+        for rep in target_repositories:
+            print(f"Очистка целевого репозитория {rep.__class__.__name__}...")
+            current_count = rep.get_count()
+            if current_count > 0:
+                current_dtos = rep.get_k_n_short_list(current_count, 1)
+                for dto in current_dtos:
+                    rep.delete(dto["id"])
+
+            print(f"Запись данных в {rep.__class__.__name__}...")
+            for dto in dtos:
+                id_ = dto["id"]
+                full_part = self._primary.get_by_id(id_)
+                rep.add_with_id(id_, full_part)
+
+            if hasattr(rep, "write"):
+                rep.write()

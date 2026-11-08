@@ -26,6 +26,8 @@ class PartRepositoryDecorator(PartRepository):
     def get_count(self) -> int:
         return self._wrapped.get_count()
 
+    def add_with_id(self, id_: int, part) -> int:
+        return self._wrapped.add_with_id(id_, part)
 
 class FilterSortDecorator(PartRepositoryDecorator):
     """

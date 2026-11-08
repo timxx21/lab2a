@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "article": "E5",
+    "name": "Помпа",
+    "price": 5000.0,
+    "manufacturer": "Hepu",
+    "weight": 1.8,
+    "warranty_months": 18
+  }
+]
