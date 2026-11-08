@@ -6,7 +6,7 @@
 <summary><b>🌟 ОБЩАЯ АРХИТЕКТУРА ПРОЕКТА (ЛР1 + ЛР2)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
-Здесь представлена полная картина взаимодействия всех компонентов. Видно, как доменная сущность `Part` (ЛР1) отделена от слоя хранения данных (`PartRepository`), а паттерны Observer, Strategy, Adapter, Singleton и Decorator гармонично дополняют друг друга.
+Здесь представлена полная картина взаимодействия всех компонентов. Видно, как доменная сущность `Part` (ЛР1) отделена от слоя хранения данных (`PartRepository`). Паттерн `Composite` связывает несколько хранилищ вместе, а `Decorator` позволяет динамически фильтровать данные.
 
 ```mermaid
 classDiagram
@@ -49,6 +49,7 @@ classDiagram
         <<abstract>>
         +get_by_id(id)
         +add(part)
+        +add_with_id(id, part)
         +get_count()
     }
 
@@ -65,6 +66,18 @@ classDiagram
     PartRepository <|-- PartRepositoryDecorator
     PartRepositoryDecorator <|-- FilterSortDecorator
     PartRepositoryDecorator o-- PartRepository : wraps
+
+    %% ================== ЛР2: Компоновщик (Синхронизация) ==================
+    class CompositePartRepository {
+        -PartRepository _primary
+        -list _replicas
+        +add(part)
+        +export_to(source, targets)
+        +resync()
+    }
+
+    PartRepository <|-- CompositePartRepository
+    CompositePartRepository o-- "*" PartRepository : delegates to (primary & replicas)
 
     %% ================== ЛР2: Файлы (Стратегия) ==================
     class PartRepFile {
@@ -219,6 +232,7 @@ classDiagram
         <<abstract>>
         +get_by_id(id)
         +add(part)
+        +add_with_id(id, part)
         +get_count()
     }
     class PartRepFile {
@@ -264,16 +278,19 @@ classDiagram
 classDiagram
     class PartRepository {
         <<abstract>>
+        +add_with_id(id, part)
     }
     class PartRepDBAdapter {
         -PartRepDB _db
         +get_by_id(id) Part
         +add(part) int
+        +add_with_id(id, part) int
     }
     class PartRepDB {
         -DBConnection _conn
         +select_by_id(id) dict
         +insert(record) int
+        +insert_with_id(id, record) int
     }
     class DBConnection {
         <<Singleton>>
@@ -292,7 +309,7 @@ classDiagram
 <summary><b>3. Ветка Декораторов (Фильтр и Сортировка)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
-Паттерн Декоратор позволяет добавить фильтрацию и сортировку поверх любого репозитория.
+Паттерн Декоратор позволяет добавить фильтрацию и сортировку поверх любого репозитория, не меняя код самого репозитория.
 
 ```mermaid
 classDiagram
@@ -300,12 +317,14 @@ classDiagram
         <<abstract>>
         +get_k_n_short_list(k, n)
         +get_count()
+        +add_with_id(id, part)
     }
     class PartRepositoryDecorator {
         <<abstract>>
         #PartRepository _wrapped
         +get_k_n_short_list(k, n)
         +get_count()
+        +add_with_id(id, part)
     }
     class FilterSortDecorator {
         -filter_fn
@@ -316,6 +335,38 @@ classDiagram
     PartRepository <|-- PartRepositoryDecorator
     PartRepositoryDecorator <|-- FilterSortDecorator
     PartRepositoryDecorator o-- PartRepository : wraps
+```
+
+</details>
+
+<details>
+<summary><b>4. Ветка Компоновщика (Синхронизация хранилищ)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Паттерн Компоновщик (Composite) позволяет работать с группой репозиториев как с единым целым. В данном случае он берет ID из Primary (БД) и синхронизирует данные с репликами (файлами JSON/YAML).
+
+```mermaid
+classDiagram
+    class PartRepository {
+        <<abstract>>
+        +add(part) int
+        +add_with_id(id, part) int
+    }
+    
+    class CompositePartRepository {
+        -PartRepository _primary
+        -list _replicas
+        +add(part) int
+        +add_with_id(id, part) int
+        +update(id, part)
+        +delete(id)
+        +resync()
+        +export_to(source_repo, target_repos)
+    }
+
+    PartRepository <|-- CompositePartRepository
+    CompositePartRepository o-- "1" PartRepository : primary
+    CompositePartRepository o-- "*" PartRepository : replicas
 ```
 
 </details>
