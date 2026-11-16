@@ -370,3 +370,105 @@ classDiagram
 ```
 
 </details>
+
+## Лабораторная работа №3 (MVC и Observer)</b>
+
+<details>
+<summary><b>1. Диаграмма классов</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+На этой диаграмме показано разделение ответственности по паттерну MVC. Контроллер обрабатывает HTTP-запросы и связывает Представление (HTML-шаблоны) с Моделью (Репозиториями). Паттерн Наблюдатель используется на стороне Модели (через `Refresher`) для синхронизации данных.
+
+```mermaid
+classDiagram
+    class MainController {
+        -DBConnection _conn
+        -PartRepDBAdapter _db_rep
+        +do_GET()
+        +_send_html(html)
+    }
+
+    class Views {
+        <<module>>
+        +render_main_page(parts, message)
+        +render_view_page(part)
+    }
+
+    class PartRepository {
+        <<interface>>
+        +get_by_id(id)
+        +get_k_n_short_list(k, n)
+        +get_count()
+    }
+    class PartRepDBAdapter
+    class PartRepDB
+    class DBConnection {
+        <<Singleton>>
+    }
+
+    class Refresher {
+        <<Observer Pattern>>
+        +make(part, producer)
+        +purge()
+    }
+
+    MainController --> Views : calls to render
+    MainController --> PartRepository : requests data
+    PartRepository <|-- PartRepDBAdapter
+    PartRepDBAdapter o-- PartRepDB
+    PartRepDB o-- DBConnection
+    MainController ..> Refresher : uses for state update
+```
+</details>
+
+<details>
+<summary><b>2. Диаграмма последовательности </b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Сценарий: Пользователь открывает главную страницу, видит список, затем нажимает "Подробнее" на одной из деталей.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant Controller as MainController
+    participant Repo as PartRepository (Model)
+    participant View as Views
+
+    %% Открытие главной страницы
+    User->>Browser: Вводит URL (localhost:8000)
+    Browser->>Controller: HTTP GET /
+    activate Controller
+    
+    Controller->>Repo: get_count()
+    Repo-->>Controller: count
+    Controller->>Repo: get_k_n_short_list(count, 1)
+    Repo-->>Controller: list[ShortPartDTO]
+    
+    Controller->>View: render_main_page(dtos)
+    activate View
+    View-->>Controller: HTML string
+    deactivate View
+    
+    Controller-->>Browser: HTTP 200 (HTML)
+    deactivate Controller
+    Browser-->>User: Отображает таблицу
+
+    %% Просмотр подробностей
+    User->>Browser: Клик на "Подробнее"
+    Browser->>Controller: HTTP GET /view?id=1
+    activate Controller
+    
+    Controller->>Repo: get_by_id(1)
+    Repo-->>Controller: Part object
+    
+    Controller->>View: render_view_page(part_dict)
+    activate View
+    View-->>Controller: HTML string
+    deactivate View
+    
+    Controller-->>Browser: HTTP 200 (HTML)
+    deactivate Controller
+    Browser-->>User: Отображает карточку детали
+```
+</details>

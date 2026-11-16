@@ -47,7 +47,7 @@ def main():
 
     # --- 2. ОБНОВЛЕНИЕ ---
     print("\n--- 2. Обновляем деталь (меняем цену) ---")
-    p1_updated = Part(rand_art, "Синхронный фильтр (NEW)", 2000, "Bosch", 1.2, 12)
+    p1_updated = Part(rand_art, "Синхронный фильтр (NEW)", 6000, "Bosch", 1.2, 12)
 
     composite.update(new_id, p1_updated)
     composite.flush()
@@ -56,26 +56,6 @@ def main():
     print(f"Новая цена в БД  : {db_adapter.get_by_id(new_id).price}")
     print(f"Новая цена в JSON: {backup_json.get_by_id(new_id).price}")
     print(f"Новая цена в YAML: {backup_yaml.get_by_id(new_id).price}")
-
-    # --- 3. УДАЛЕНИЕ ---
-    print("\n--- 3. Удаляем деталь ---")
-    composite.delete(new_id)
-    composite.flush()
-
-    # ПРОВЕРКА:
-    print(f"Элемент удален. Проверка (должно быть KeyError):")
-    try:
-        db_adapter.get_by_id(new_id)
-        print("ОШИБКА: Объект всё еще в БД!")
-    except KeyError:
-        print("В БД его нет.")
-
-    try:
-        backup_json.get_by_id(new_id)
-        print("ОШИБКА: Объект всё еще в JSON!")
-    except KeyError:
-        print("В JSON его нет.")
-
     print("\n--- 4. ЭКСПОРТ С ПОМОЩЬЮ ПАТТЕРНА ДЕКОРАТОР ---")
     print("Задача: Выгрузить из БД в ОТДЕЛЬНЫЕ файлы только детали с ценой > 2000.")
 
