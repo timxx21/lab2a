@@ -7,7 +7,10 @@ def render_main_page(parts, message=""):
             <td>{p['article']}</td>
             <td>{p['name']}</td>
             <td>{p['price']} ₽</td>
-            <td><a href="/view?id={p['id']}">Подробнее</a></td>
+            <td>
+                <a href="/view?id={p['id']}">Подробнее</a>
+                <a href="/edit?id={p['id']}">Редактировать</a>
+            </td>
         </tr>
         """
 
@@ -60,6 +63,31 @@ def render_add_form(error=""):
             <p><label>Вес: <input type="number" step="0.01" name="weight"></label></p>
             <p><label>Гарантия (мес): <input type="number" name="warranty_months"></label></p>
             <button type="submit">Сохранить</button>
+        </form>
+        <br>
+        <a href="/">Отмена</a>
+    </body>
+    </html>
+    """
+
+def render_edit_form(part, error=""):
+    """Форма редактирования, заполненная данными детали."""
+    error_html = f"<p style='color:red; font-weight:bold;'>{error}</p>" if error else ""
+    return f"""
+    <html>
+    <head><meta charset="utf-8"><title>Редактирование</title></head>
+    <body>
+        <h1>Редактировать деталь</h1>
+        {error_html}
+        <form method="POST" action="/edit">
+            <input type="hidden" name="id" value="{part['id']}">
+            <p><label>Артикул: <input type="text" name="article" value="{part['article']}"></label></p>
+            <p><label>Название: <input type="text" name="name" value="{part['name']}"></label></p>
+            <p><label>Цена: <input type="number" step="0.01" name="price" value="{part['price']}"></label></p>
+            <p><label>Производитель: <input type="text" name="manufacturer" value="{part['manufacturer']}"></label></p>
+            <p><label>Вес: <input type="number" step="0.01" name="weight" value="{part['weight']}"></label></p>
+            <p><label>Гарантия (мес): <input type="number" name="warranty_months" value="{part['warranty_months']}"></label></p>
+            <button type="submit">Обновить</button>
         </form>
         <br>
         <a href="/">Отмена</a>

@@ -374,7 +374,7 @@ classDiagram
 ## Лабораторная работа №3 (MVC и Observer)</b>
 
 <details>
-<summary><b>1. Диаграмма классов</b> (нажмите, чтобы развернуть)</summary>
+<summary><b>1. Диаграмма классов (Пункт 1: Базовый MVC + Read)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 На этой диаграмме показано разделение ответственности по паттерну MVC. Контроллер обрабатывает HTTP-запросы и связывает Представление (HTML-шаблоны) с Моделью (Репозиториями). Паттерн Наблюдатель используется на стороне Модели (через `Refresher`) для синхронизации данных.
@@ -422,9 +422,10 @@ classDiagram
 </details>
 
 <details>
-<summary><b>1.2. Диаграмма классов </b> (нажмите, чтобы развернуть)</summary>
+<summary><b>1.2. Диаграмма классов (Пункт 2: Добавление записи)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
+Для выполнения требования "для нового окна — новый контроллер" мы выделили `AddController`. Главный контроллер делегирует ему обработку маршрута `/add`.
 
 ```mermaid
 classDiagram
@@ -450,7 +451,58 @@ classDiagram
 </details>
 
 <details>
-<summary><b>2. Диаграмма последовательности </b> (нажмите, чтобы развернуть)</summary>
+<summary><b>1.3. Диаграмма классов (Пункт 3: Редактирование)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+По аналогии с добавлением создан `EditController`. Теперь `MainController` выступает как маршрутизатор, который передает управление нужному контроллеру в зависимости от URL.
+
+```mermaid
+classDiagram
+    class MainController {
+        -PartRepDBAdapter _db_rep
+        -AddController _add_ctrl
+        -EditController _edit_ctrl
+        +do_GET()
+        +do_POST()
+    }
+
+    class AddController {
+        +show_form(handler)
+        +handle_post(handler)
+    }
+
+    class EditController {
+        -PartRepDBAdapter _db_rep
+        +show_form(handler, query)
+        +handle_post(handler)
+    }
+
+    class Views {
+        <<module>>
+        +render_main_page()
+        +render_view_page()
+        +render_add_form()
+        +render_edit_form()
+        +render_redirect()
+    }
+
+    class PartRepository {
+        <<interface>>
+    }
+    class PartRepDBAdapter
+
+    MainController --> AddController : delegates /add
+    MainController --> EditController : delegates /edit
+    MainController --> Views : renders
+    AddController --> Views
+    EditController --> Views : renders form
+    EditController --> PartRepository : updates data
+```
+</details>
+
+
+<details>
+<summary><b>2. Диаграмма последовательности (Пункт 1: Read / Просмотр) </b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 Сценарий: Пользователь открывает главную страницу, видит список, затем нажимает "Подробнее" на одной из деталей.
@@ -502,9 +554,10 @@ sequenceDiagram
 </details>
 
 <details>
-<summary><b>2.2. Диаграмма последовательности </b> (нажмите, чтобы развернуть)</summary>
+<summary><b>2.2.  Диаграмма последовательности (Пункт 2: Create / Добавление) </b> (нажмите, чтобы развернуть)</summary>
 
 <br>
+Сценарий добавления. Показана работа валидации: если данные не проходят, пользователь остается на форме.
 
 ```mermaid
 sequenceDiagram
@@ -535,6 +588,51 @@ sequenceDiagram
     else Ошибка
         AddCtrl->>View: render_add_form(error)
         AddCtrl-->>Browser: HTTP 200 (Форма с ошибкой)
+    end
+```
+</details>
+
+<details>
+<summary><b>2.3. Диаграмма последовательности (Пункт 3: Update / Редактирование)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Сценарий редактирования. Сначала контроллер загружает данные (GET), затем сохраняет их (POST).
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant MainCtrl as MainController
+    participant EditCtrl as EditController
+    participant Model as Part / Repo
+    participant View as Views
+
+    User->>Browser: Клик "Редактировать" (id=1)
+    Browser->>MainCtrl: GET /edit?id=1
+    MainCtrl->>EditCtrl: show_form(query)
+    EditCtrl->>Model: get_by_id(1)
+    Model-->>EditCtrl: Part
+    EditCtrl->>View: render_edit_form(part)
+    View-->>EditCtrl: HTML
+    EditCtrl-->>Browser: HTML (Форма с данными)
+    Browser-->>User: Форма редактирования
+
+    User->>Browser: Изменение данных и Submit
+    Browser->>MainCtrl: POST /edit (data)
+    MainCtrl->>EditCtrl: handle_post(request)
+    EditCtrl->>Model: Part(...)
+    
+    alt Данные валидны
+        EditCtrl->>Model: update(id, part)
+        EditCtrl->>View: render_redirect("/")
+        EditCtrl-->>Browser: HTTP 200 (Redirect)
+        Browser->>MainCtrl: GET /
+        MainCtrl-->>Browser: Обновленная таблица
+    else Ошибка валидации
+        Model-->>EditCtrl: Exception
+        EditCtrl->>View: render_edit_form(part_data, error)
+        EditCtrl-->>Browser: HTTP 200 (Форма с ошибкой)
+        Browser-->>User: Форма (данные сохранены, видна ошибка)
     end
 ```
 </details>

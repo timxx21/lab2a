@@ -45,12 +45,86 @@ class AddController:
         handler.end_headers()
         handler.wfile.write(html.encode('utf-8'))
 
+
+class EditController:
+    """Отдельный контроллер для операций редактирования (MVC)"""
+
+    def __init__(self, db_rep):
+        self._db_rep = db_rep
+
+    def show_form(self, handler, query):
+        """Показ формы редактирования с заполненными данными."""
+        part_id = int(query.get('id', [0])[0])
+        try:
+            part = self._db_rep.get_by_id(part_id)
+            part_dict = {
+                'id': part_id,
+                'article': part.article,
+                'name': part.name,
+                'price': part.price,
+                'manufacturer': part.manufacturer,
+                'weight': part.weight,
+                'warranty_months': part.warranty_months
+            }
+            html = views.render_edit_form(part_dict)
+            self._send_html(handler, html)
+        except KeyError:
+            handler.send_error(404, "Part not found")
+
+    def handle_post(self, handler):
+        """Обработка POST-запроса (сохранение изменений)."""
+        content_length = int(handler.headers['Content-Length'])
+        post_data = handler.rfile.read(content_length).decode('utf-8')
+        form = parse_qs(post_data)
+
+        part_id = int(form.get('id', [0])[0])
+
+        try:
+            # Валидация через класс Part
+            updated_part = Part(
+                article=form.get('article', [''])[0],
+                name=form.get('name', [''])[0],
+                price=float(form.get('price', [0])[0]),
+                manufacturer=form.get('manufacturer', [''])[0],
+                weight=float(form.get('weight', [0])[0]),
+                warranty_months=int(form.get('warranty_months', [0])[0])
+            )
+
+            # Сохранение изменений в БД
+            self._db_rep.update(part_id, updated_part)
+
+            # Успех! Редирект на главную
+            html = views.render_redirect("/")
+            self._send_html(handler, html)
+
+        except Exception as e:
+            # Если ошибка валидации, показываем форму снова с ошибкой
+            # Нам нужно передать обратно данные, чтобы они не стерлись
+            part_dict = {
+                'id': part_id,
+                'article': form.get('article', [''])[0],
+                'name': form.get('name', [''])[0],
+                'price': form.get('price', [0])[0],
+                'manufacturer': form.get('manufacturer', [''])[0],
+                'weight': form.get('weight', [0])[0],
+                'warranty_months': form.get('warranty_months', [0])[0]
+            }
+            html = views.render_edit_form(part_dict, error=str(e))
+            self._send_html(handler, html)
+
+    def _send_html(self, handler, html, status=200):
+        handler.send_response(status)
+        handler.send_header('Content-type', 'text/html; charset=utf-8')
+        handler.end_headers()
+        handler.wfile.write(html.encode('utf-8'))
+
 class MainController(BaseHTTPRequestHandler):
     # Инициализируем репозиторий один раз при старте
     _conn = DBConnection(host="localhost", user="root", password="pass", database="autoparts")
     _db_rep = PartRepDBAdapter(PartRepDB(_conn))
 
     _add_ctrl = AddController(_db_rep)
+    _edit_ctrl = EditController(_db_rep)
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
@@ -88,6 +162,10 @@ class MainController(BaseHTTPRequestHandler):
             # Делегируем показ формы AddController-у
             self._add_ctrl.show_form(self)
 
+        elif path == '/edit':
+            # Делегируем контроллеру редактирования
+            self._edit_ctrl.show_form(self, query)
+
         else:
             self.send_error(404, "Page not found")
 
@@ -98,6 +176,11 @@ class MainController(BaseHTTPRequestHandler):
         if path == '/add':
             # Делегируем обработку POST-запроса AddController-у
             self._add_ctrl.handle_post(self)
+
+        elif path == '/edit':
+            # Делегируем обработку формы редактирования
+            self._edit_ctrl.handle_post(self)
+
         else:
             self.send_error(404, "Page not found")
 
