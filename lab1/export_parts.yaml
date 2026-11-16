@@ -19,3 +19,10 @@
   manufacturer: Bosch
   weight: 1.2
   warranty_months: 12
+- id: 36
+  article: SYNC-1531
+  name: Синхронный фильтр (NEW)
+  price: 6000.0
+  manufacturer: Bosch
+  weight: 1.2
+  warranty_months: 12

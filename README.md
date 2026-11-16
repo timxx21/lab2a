@@ -3,134 +3,113 @@
 Данный документ содержит полную архитектуру проекта, разделенную по лабораторным работам и логическим веткам. Нажмите на название диаграммы, чтобы раскрыть её.
 
 <details>
-<summary><b>🌟 ОБЩАЯ АРХИТЕКТУРА ПРОЕКТА (ЛР1 + ЛР2)</b> (нажмите, чтобы развернуть)</summary>
+<summary><b>🌟 СКВОЗНАЯ АРХИТЕКТУРА ПРОЕКТА (ЛР1 + ЛР2 + ЛР3)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
-Здесь представлена полная картина взаимодействия всех компонентов. Видно, как доменная сущность `Part` (ЛР1) отделена от слоя хранения данных (`PartRepository`). Паттерн `Composite` связывает несколько хранилищ вместе, а `Decorator` позволяет динамически фильтровать данные.
+На этой диаграмме представлена полная картина взаимодействия всех компонентов. Схема разделена на три логических слоя (сверху вниз): **Веб-слой (MVC)**, **Слой хранения (Репозитории)** и **Доменный слой (Бизнес-логика)**.
 
 ```mermaid
 classDiagram
-    %% ================== ЛР1: Домен и Обсервер ==================
-    class Part {
-        -list _observers
-        +attach(obs)
-        +detach_all()
-        +_notify()
+    direction TB
+
+    %% ================== СЛОЙ 1: ВЕБ-СЛОЙ (MVC) ==================
+    namespace WebLayer_MVC {
+        class MainController {
+            -PartRepDBAdapter _db_rep
+            +do_GET()
+            +do_POST()
+        }
+        class AddController
+        class EditController
+        class DeleteController
+        class Views {
+            <<module>>
+            +render_main_page()
+            +render_form()
+        }
     }
 
-    class LiveProjection {
-        +update(subject)
-        +is_alive : bool
-    }
-    
-    class ShortPartDTO {
-        <<immutable>>
-    }
+    MainController --> AddController : delegates /add
+    MainController --> EditController : delegates /edit
+    MainController --> DeleteController : delegates /delete
+    MainController ..> Views : renders HTML
 
-    class Refresher {
-        +make(part, producer)
-        +purge()
-    }
+    %% ================== СЛОЙ 2: ХРАНЕНИЕ (РЕПОЗИТОРИИ) ==================
+    namespace StorageLayer_Repositories {
+        class PartRepository {
+            <<interface>>
+            +get_by_id()
+            +add(part)
+            +add_with_id()
+            +get_k_n_short_list()
+            +update(id, part)
+            +delete(id)
+            +get_count()
+        }
 
-    class PartManager {
-        -dict _parts
-        +add(part)
-        +remove(part)
-    }
-
-    Part "1" o-- "*" LiveProjection : notify
-    LiveProjection --> "1" ShortPartDTO : holds
-    Refresher o-- "*" LiveProjection : manages
-    PartManager o-- "*" Part : stores
-    PartManager o-- Refresher : uses
-
-    %% ================== ЛР2: Интерфейс и Декораторы ==================
-    class PartRepository {
-        <<abstract>>
-        +get_by_id(id)
-        +add(part)
-        +add_with_id(id, part)
-        +get_count()
+        class CompositePartRepository
+        class FilterSortDecorator
+        class PartRepositoryDecorator {
+            <<abstract>>
+        }
+        
+        class PartRepDBAdapter
+        class PartRepFile {
+            <<abstract>>
+        }
+        class PartRepJSON
+        class PartRepYAML
     }
 
-    class PartRepositoryDecorator {
-        <<abstract>>
-        #PartRepository _wrapped
-    }
-
-    class FilterSortDecorator {
-        -filter_fn
-        -sort_key
-    }
-
+    %% Связи внутри слоя хранения
+    PartRepository <|-- CompositePartRepository
     PartRepository <|-- PartRepositoryDecorator
     PartRepositoryDecorator <|-- FilterSortDecorator
-    PartRepositoryDecorator o-- PartRepository : wraps
-
-    %% ================== ЛР2: Компоновщик (Синхронизация) ==================
-    class CompositePartRepository {
-        -PartRepository _primary
-        -list _replicas
-        +add(part)
-        +export_to(source, targets)
-        +resync()
-    }
-
-    PartRepository <|-- CompositePartRepository
-    CompositePartRepository o-- "*" PartRepository : delegates to (primary & replicas)
-
-    %% ================== ЛР2: Файлы (Стратегия) ==================
-    class PartRepFile {
-        <<abstract>>
-        #_path
-        #_serializer
-    }
-
-    class PartRepJSON
-    class PartRepYAML
-
-    class Serializer {
-        <<interface>>
-    }
-    
-    class JsonSerializer
-    class YamlSerializer
-    
-    class SerializerRegistry {
-        +get(name) Serializer
-    }
-
+    PartRepository <|-- PartRepDBAdapter
     PartRepository <|-- PartRepFile
     PartRepFile <|-- PartRepJSON
     PartRepFile <|-- PartRepYAML
-    PartRepFile o-- Serializer : delegates
-    Serializer <|-- JsonSerializer
-    Serializer <|-- YamlSerializer
-    SerializerRegistry ..> Serializer : creates
 
-    %% ================== ЛР2: База Данных (Адаптер + Синглтон) ==================
-    class PartRepDBAdapter {
-        -PartRepDB _db
+    %% Связи от Веб-слоя к Хранилищу
+    MainController ..> PartRepository : requests data
+    MainController ..> FilterSortDecorator : uses for UI
+
+    %% ================== СЛОЙ 3: ДОМЕН (ЛР1) ==================
+    namespace DomainLayer_LR1 {
+        class Part {
+            -str _article
+            -float _price
+            +attach(obs)
+            +detach_all()
+        }
+        class LiveProjection {
+            +update(subject)
+        }
+        class ShortPartDTO {
+            <<immutable>>
+        }
+        class Refresher
+        class DBConnection {
+            <<Singleton>>
+        }
+        class Serializer {
+            <<interface>>
+        }
     }
 
-    class PartRepDB {
-        -DBConnection _conn
-    }
-
-    class DBConnection {
-        <<Singleton>>
-        -_instance
-    }
-
-    PartRepository <|-- PartRepDBAdapter
-    PartRepDBAdapter o-- PartRepDB : delegates
-    PartRepDB o-- DBConnection : uses
-    
-    %% Зависимости от домена (что возвращают репозитории)
-    PartRepository ..> Part : returns
+    %% Связи от Хранилища к Домену
+    PartRepDBAdapter ..> Part : creates/returns
+    PartRepDBAdapter --> DBConnection : uses (Singleton)
+    PartRepFile ..> Part : creates/returns
+    PartRepFile --> Serializer : uses (Strategy)
     PartRepository ..> ShortPartDTO : returns
-```
+    
+    %% Связи внутри Домена
+    Part "1" o-- "*" LiveProjection : notify (Observer)
+    LiveProjection --> "1" ShortPartDTO : holds
+    Refresher o-- "*" LiveProjection : manages
 
+```
 </details>
 
 ## Лабораторная работа №1 (Домен и Observer)

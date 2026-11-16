@@ -3,7 +3,7 @@ from urllib.parse import urlparse, parse_qs
 
 # Импортируем наши репозитории и сущности
 from lab1.autopartsLab1 import (
-    DBConnection, PartRepDB, PartRepDBAdapter, Part, FilterSortDecorator
+    DBConnection, PartRepDB, PartRepDBAdapter, Part, FilterSortDecorator, Refresher
 )
 from . import views
 
@@ -160,7 +160,14 @@ class MainController(BaseHTTPRequestHandler):
     _add_ctrl = AddController(_db_rep)
     _edit_ctrl = EditController(_db_rep)
 
+    _refresher = Refresher()
+
     def do_GET(self):
+        # Принудительно обновляем соединение с БД, чтобы сбросить кэш транзакции
+        try:
+            self._conn.connect().commit()
+        except Exception:
+            pass
         parsed_path = urlparse(self.path)
         path = parsed_path.path
         query = parse_qs(parsed_path.query)
@@ -195,6 +202,17 @@ class MainController(BaseHTTPRequestHandler):
             self._send_html(html)
 
         elif path == '/view':
+            # 1. Принудительно обновляем соединение с БД, чтобы сбросить кэш транзакции
+            try:
+                self._conn.connect().commit()  # сбрасываем транзакцию
+            except Exception:
+                pass  # если соединение упало, оно переподключится ниже
+
+            # 2. Создаем новый репозиторий (или используем старый, но с свежим соединением)
+            current_rep = PartRepDBAdapter(PartRepDB(self._conn))
+
+            # 3. Используем Refresher для сброса старых проекций (если они были)
+            self._refresher.purge()
             # Просмотр полной информации
             part_id = int(query.get('id', [0])[0])
             try:
@@ -226,6 +244,12 @@ class MainController(BaseHTTPRequestHandler):
             self.send_error(404, "Page not found")
 
     def do_POST(self):
+        # Принудительно обновляем соединение с БД, чтобы сбросить кэш транзакции
+        try:
+            self._conn.connect().commit()
+        except Exception:
+            pass
+
         parsed_path = urlparse(self.path)
         path = parsed_path.path
 
