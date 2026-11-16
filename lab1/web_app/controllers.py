@@ -125,7 +125,7 @@ class EditController:
         handler.end_headers()
         handler.wfile.write(html.encode('utf-8'))
 
-    class DeleteController:
+class DeleteController:
         """Контроллер для удаления записи (Пункт 5)."""
 
         def __init__(self, db_rep):
@@ -159,6 +159,7 @@ class MainController(BaseHTTPRequestHandler):
 
     _add_ctrl = AddController(_db_rep)
     _edit_ctrl = EditController(_db_rep)
+    _del_ctrl = DeleteController(_db_rep)
 
     _refresher = Refresher()
 
@@ -239,6 +240,9 @@ class MainController(BaseHTTPRequestHandler):
         elif path == '/edit':
             # Делегируем контроллеру редактирования
             self._edit_ctrl.show_form(self, query)
+
+        elif path == '/delete':
+            self._del_ctrl.handle_delete(self, query)
 
         else:
             self.send_error(404, "Page not found")

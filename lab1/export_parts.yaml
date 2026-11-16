@@ -26,3 +26,17 @@
   manufacturer: Bosch
   weight: 1.2
   warranty_months: 12
+- id: 37
+  article: SYNC-6358
+  name: Синхронный фильтр (NEW)
+  price: 6000.0
+  manufacturer: Bosch
+  weight: 1.2
+  warranty_months: 12
+- id: 38
+  article: SYNC-5319
+  name: Синхронный фильтр (NEW)
+  price: 6000.0
+  manufacturer: Bosch
+  weight: 1.2
+  warranty_months: 12
