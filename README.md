@@ -16,8 +16,10 @@ classDiagram
     namespace WebLayer_MVC {
         class MainController {
             -PartRepDBAdapter _db_rep
+            -Refresher _refresher
             +do_GET()
             +do_POST()
+            +refresh_data()
         }
         class AddController
         class EditController
@@ -88,7 +90,10 @@ classDiagram
         class ShortPartDTO {
             <<immutable>>
         }
-        class Refresher
+        class Refresher {
+            +make(part, producer)
+            +purge()
+        }
         class DBConnection {
             <<Singleton>>
         }
@@ -108,6 +113,9 @@ classDiagram
     Part "1" o-- "*" LiveProjection : notify (Observer)
     LiveProjection --> "1" ShortPartDTO : holds
     Refresher o-- "*" LiveProjection : manages
+
+    %% Связь Веб-слоя с Refresher (Сброс кэша)
+    MainController --> Refresher : uses (purge)
 
 ```
 </details>
