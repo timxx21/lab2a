@@ -7,11 +7,50 @@ from lab1.autopartsLab1 import (
 )
 from . import views
 
+class AddController:
+    """Контроллер для обработки операций добавления."""
+
+    def __init__(self, db_rep):
+        self._db_rep = db_rep
+
+    def show_form(self, handler, error=""):
+        html = views.render_add_form(error)
+        self._send_html(handler, html)
+
+    def handle_post(self, handler):
+        content_length = int(handler.headers['Content-Length'])
+        post_data = handler.rfile.read(content_length).decode('utf-8')
+        form = parse_qs(post_data)
+
+        try:
+            new_part = Part(
+                article=form.get('article', [''])[0],
+                name=form.get('name', [''])[0],
+                price=float(form.get('price', [0])[0]),
+                manufacturer=form.get('manufacturer', [''])[0],
+                weight=float(form.get('weight', [0])[0]),
+                warranty_months=int(form.get('warranty_months', [0])[0])
+            )
+            self._db_rep.add(new_part)
+            html = views.render_redirect("/")
+            self._send_html(handler, html)
+
+        except Exception as e:
+            html = views.render_add_form(error=str(e))
+            self._send_html(handler, html)
+
+    def _send_html(self, handler, html, status=200):
+        handler.send_response(status)
+        handler.send_header('Content-type', 'text/html; charset=utf-8')
+        handler.end_headers()
+        handler.wfile.write(html.encode('utf-8'))
 
 class MainController(BaseHTTPRequestHandler):
     # Инициализируем репозиторий один раз при старте
     _conn = DBConnection(host="localhost", user="root", password="pass", database="autoparts")
     _db_rep = PartRepDBAdapter(PartRepDB(_conn))
+
+    _add_ctrl = AddController(_db_rep)
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
@@ -44,6 +83,21 @@ class MainController(BaseHTTPRequestHandler):
                 self._send_html(html)
             except KeyError:
                 self.send_error(404, "Part not found")
+
+        elif path == '/add':
+            # Делегируем показ формы AddController-у
+            self._add_ctrl.show_form(self)
+
+        else:
+            self.send_error(404, "Page not found")
+
+    def do_POST(self):
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+
+        if path == '/add':
+            # Делегируем обработку POST-запроса AddController-у
+            self._add_ctrl.handle_post(self)
         else:
             self.send_error(404, "Page not found")
 
@@ -53,7 +107,6 @@ class MainController(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html; charset=utf-8')
         self.end_headers()
         self.wfile.write(html.encode('utf-8'))
-
 
 def run_server():
     server_address = ('', 8000)

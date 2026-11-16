@@ -422,6 +422,34 @@ classDiagram
 </details>
 
 <details>
+<summary><b>1.2. Диаграмма классов </b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+
+```mermaid
+classDiagram
+    class MainController {
+        +do_GET()
+        +do_POST()
+    }
+    class AddController {
+        -PartRepDBAdapter _db_rep
+        +show_form()
+        +handle_post()
+    }
+    class Views {
+        +render_main_page()
+        +render_add_form()
+        +render_redirect()
+    }
+    MainController --> AddController : delegates /add
+    MainController --> Views
+    AddController --> Views
+    AddController --> PartRepDBAdapter
+```
+</details>
+
+<details>
 <summary><b>2. Диаграмма последовательности </b> (нажмите, чтобы развернуть)</summary>
 
 <br>
@@ -470,5 +498,43 @@ sequenceDiagram
     Controller-->>Browser: HTTP 200 (HTML)
     deactivate Controller
     Browser-->>User: Отображает карточку детали
+```
+</details>
+
+<details>
+<summary><b>2.2. Диаграмма последовательности </b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant MainCtrl as MainController
+    participant AddCtrl as AddController
+    participant Model as PartRepDBAdapter
+    participant View as Views
+
+    User->>Browser: Клик "Добавить запись"
+    Browser->>MainCtrl: GET /add
+    MainCtrl->>AddCtrl: show_form()
+    AddCtrl->>View: render_add_form()
+    View-->>AddCtrl: HTML
+    AddCtrl-->>Browser: HTTP 200 (Форма)
+
+    User->>Browser: Заполняет и жмет "Сохранить"
+    Browser->>MainCtrl: POST /add
+    MainCtrl->>AddCtrl: handle_post(request)
+    AddCtrl->>Model: Part(...) - Валидация
+    alt Валидация ОК
+        AddCtrl->>Model: add(part)
+        AddCtrl->>View: render_redirect("/")
+        AddCtrl-->>Browser: HTTP 200 (Redirect)
+        Browser->>MainCtrl: GET /
+        MainCtrl-->>Browser: Обновленная таблица
+    else Ошибка
+        AddCtrl->>View: render_add_form(error)
+        AddCtrl-->>Browser: HTTP 200 (Форма с ошибкой)
+    end
 ```
 </details>
