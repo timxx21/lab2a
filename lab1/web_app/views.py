@@ -46,48 +46,42 @@ def render_view_page(part):
     </html>
     """
 
-def render_add_form(error=""):
-    """Форма добавления новой детали с выводом ошибок валидации."""
-    error_html = f"<p style='color:red; font-weight:bold;'>{error}</p>" if error else ""
-    return f"""
-    <html>
-    <head><meta charset="utf-8"><title>Добавление детали</title></head>
-    <body>
-        <h1>Добавить новую деталь</h1>
-        {error_html}
-        <form method="POST" action="/add">
-            <p><label>Артикул: <input type="text" name="article"></label></p>
-            <p><label>Название: <input type="text" name="name"></label></p>
-            <p><label>Цена: <input type="number" step="0.01" name="price"></label></p>
-            <p><label>Производитель: <input type="text" name="manufacturer"></label></p>
-            <p><label>Вес: <input type="number" step="0.01" name="weight"></label></p>
-            <p><label>Гарантия (мес): <input type="number" name="warranty_months"></label></p>
-            <button type="submit">Сохранить</button>
-        </form>
-        <br>
-        <a href="/">Отмена</a>
-    </body>
-    </html>
+def render_form(part=None, error=""):
     """
-
-def render_edit_form(part, error=""):
-    """Форма редактирования, заполненная данными детали."""
+    Универсальная форма (один класс окна).
+    Если part=None, поля пустые (режим добавления).
+    Если part передан, поля заполнены (режим редактирования).
+    """
     error_html = f"<p style='color:red; font-weight:bold;'>{error}</p>" if error else ""
+
+    # Определяем режим и action для формы
+    is_edit = part is not None
+    action = "/edit" if is_edit else "/add"
+    title = "Редактировать деталь" if is_edit else "Добавить новую деталь"
+    button_text = "Обновить" if is_edit else "Сохранить"
+
+    # Безопасно достаем значения (если part нет, будут пустые строки)
+    def val(key):
+        return part.get(key, '') if part else ''
+
+    # Если это редактирование, нам нужен скрытый input с ID
+    id_input = f'<input type="hidden" name="id" value="{val("id")}">' if is_edit else ''
+
     return f"""
     <html>
-    <head><meta charset="utf-8"><title>Редактирование</title></head>
+    <head><meta charset="utf-8"><title>{title}</title></head>
     <body>
-        <h1>Редактировать деталь</h1>
+        <h1>{title}</h1>
         {error_html}
-        <form method="POST" action="/edit">
-            <input type="hidden" name="id" value="{part['id']}">
-            <p><label>Артикул: <input type="text" name="article" value="{part['article']}"></label></p>
-            <p><label>Название: <input type="text" name="name" value="{part['name']}"></label></p>
-            <p><label>Цена: <input type="number" step="0.01" name="price" value="{part['price']}"></label></p>
-            <p><label>Производитель: <input type="text" name="manufacturer" value="{part['manufacturer']}"></label></p>
-            <p><label>Вес: <input type="number" step="0.01" name="weight" value="{part['weight']}"></label></p>
-            <p><label>Гарантия (мес): <input type="number" name="warranty_months" value="{part['warranty_months']}"></label></p>
-            <button type="submit">Обновить</button>
+        <form method="POST" action="{action}">
+            {id_input}
+            <p><label>Артикул: <input type="text" name="article" value="{val('article')}"></label></p>
+            <p><label>Название: <input type="text" name="name" value="{val('name')}"></label></p>
+            <p><label>Цена: <input type="number" step="0.01" name="price" value="{val('price')}"></label></p>
+            <p><label>Производитель: <input type="text" name="manufacturer" value="{val('manufacturer')}"></label></p>
+            <p><label>Вес: <input type="number" step="0.01" name="weight" value="{val('weight')}"></label></p>
+            <p><label>Гарантия (мес): <input type="number" name="warranty_months" value="{val('warranty_months')}"></label></p>
+            <button type="submit">{button_text}</button>
         </form>
         <br>
         <a href="/">Отмена</a>

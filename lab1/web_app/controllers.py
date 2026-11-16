@@ -14,7 +14,8 @@ class AddController:
         self._db_rep = db_rep
 
     def show_form(self, handler, error=""):
-        html = views.render_add_form(error)
+        # Передаем part=None, так как это добавление
+        html = views.render_form(part=None, error=error)
         self._send_html(handler, html)
 
     def handle_post(self, handler):
@@ -36,7 +37,10 @@ class AddController:
             self._send_html(handler, html)
 
         except Exception as e:
-            html = views.render_add_form(error=str(e))
+            # При ошибке возвращаем форму с введенными данными
+            part_data = {k: form.get(k, [''])[0] for k in
+                         ['article', 'name', 'price', 'manufacturer', 'weight', 'warranty_months']}
+            html = views.render_form(error=str(e))
             self._send_html(handler, html)
 
     def _send_html(self, handler, html, status=200):
@@ -66,7 +70,8 @@ class EditController:
                 'weight': part.weight,
                 'warranty_months': part.warranty_months
             }
-            html = views.render_edit_form(part_dict)
+            # Передаем данные, форма заполнится
+            html = views.render_form(part=part_dict)
             self._send_html(handler, html)
         except KeyError:
             handler.send_error(404, "Part not found")
@@ -109,7 +114,7 @@ class EditController:
                 'weight': form.get('weight', [0])[0],
                 'warranty_months': form.get('warranty_months', [0])[0]
             }
-            html = views.render_edit_form(part_dict, error=str(e))
+            html = views.render_form(part_dict, error=str(e))
             self._send_html(handler, html)
 
     def _send_html(self, handler, html, status=200):

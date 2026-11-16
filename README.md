@@ -373,8 +373,9 @@ classDiagram
 
 ## Лабораторная работа №3 (MVC и Observer)</b>
 
+### Диаграммы классов по пунктам:
 <details>
-<summary><b>1. Диаграмма классов (Пункт 1: Базовый MVC + Read)</b> (нажмите, чтобы развернуть)</summary>
+<summary><b> Пункт 1: Базовый MVC + Read</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 На этой диаграмме показано разделение ответственности по паттерну MVC. Контроллер обрабатывает HTTP-запросы и связывает Представление (HTML-шаблоны) с Моделью (Репозиториями). Паттерн Наблюдатель используется на стороне Модели (через `Refresher`) для синхронизации данных.
@@ -422,7 +423,7 @@ classDiagram
 </details>
 
 <details>
-<summary><b>1.2. Диаграмма классов (Пункт 2: Добавление записи)</b> (нажмите, чтобы развернуть)</summary>
+<summary><b> Пункт 2: Добавление записи</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 Для выполнения требования "для нового окна — новый контроллер" мы выделили `AddController`. Главный контроллер делегирует ему обработку маршрута `/add`.
@@ -451,7 +452,7 @@ classDiagram
 </details>
 
 <details>
-<summary><b>1.3. Диаграмма классов (Пункт 3: Редактирование)</b> (нажмите, чтобы развернуть)</summary>
+<summary><b> Пункт 3: Редактирование</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 По аналогии с добавлением создан `EditController`. Теперь `MainController` выступает как маршрутизатор, который передает управление нужному контроллеру в зависимости от URL.
@@ -500,9 +501,45 @@ classDiagram
 ```
 </details>
 
-
 <details>
-<summary><b>2. Диаграмма последовательности (Пункт 1: Read / Просмотр) </b> (нажмите, чтобы развернуть)</summary>
+<summary><b> Пункт 4: Универсальная форма</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Рефакторинг: вместо двух разных View-функций для добавления и редактирования, создана одна универсальная `render_form`. Различие в поведении (пустая/заполненная форма) теперь полностью контролируется контроллерами.
+
+```mermaid
+classDiagram
+    class MainController {
+        -PartRepDBAdapter _db_rep
+        -AddController _add_ctrl
+        -EditController _edit_ctrl
+    }
+    class AddController {
+        +show_form(handler)
+        +handle_post(handler)
+    }
+    class EditController {
+        +show_form(handler, query)
+        +handle_post(handler)
+    }
+    class Views {
+        <<module>>
+        +render_main_page()
+        +render_view_page()
+        +render_form(part=None, error="")
+        +render_redirect()
+    }
+    MainController --> AddController : delegates /add
+    MainController --> EditController : delegates /edit
+    MainController --> Views
+    AddController --> Views : render_form(part=None)
+    EditController --> Views : render_form(part=dict)
+```
+</details>
+
+### Диаграммы последовальности по пунктам:
+<details>
+<summary><b> Пункт 1: Read / Просмотр </b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 Сценарий: Пользователь открывает главную страницу, видит список, затем нажимает "Подробнее" на одной из деталей.
@@ -554,7 +591,7 @@ sequenceDiagram
 </details>
 
 <details>
-<summary><b>2.2.  Диаграмма последовательности (Пункт 2: Create / Добавление) </b> (нажмите, чтобы развернуть)</summary>
+<summary><b> Пункт 2: Create / Добавление  </b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 Сценарий добавления. Показана работа валидации: если данные не проходят, пользователь остается на форме.
@@ -593,7 +630,7 @@ sequenceDiagram
 </details>
 
 <details>
-<summary><b>2.3. Диаграмма последовательности (Пункт 3: Update / Редактирование)</b> (нажмите, чтобы развернуть)</summary>
+<summary><b> Пункт 3: Update / Редактирование</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
 Сценарий редактирования. Сначала контроллер загружает данные (GET), затем сохраняет их (POST).
@@ -634,5 +671,40 @@ sequenceDiagram
         EditCtrl-->>Browser: HTTP 200 (Форма с ошибкой)
         Browser-->>User: Форма (данные сохранены, видна ошибка)
     end
+```
+</details>
+
+<details>
+<summary><b> Пункт 4: Универсальная форма </b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Сценарий: показываем, как один и тот же `render_form` используется для двух разных сценариев (Add и Edit).
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant MainCtrl as MainController
+    participant Ctrl as Add/Edit Controller
+    participant View as Views
+
+    alt Сценарий "Добавление"
+        User->>Browser: GET /add
+        Browser->>MainCtrl: HTTP Request
+        MainCtrl->>Ctrl: show_form(handler)
+        Note over Ctrl: part_data = None
+        Ctrl->>View: render_form(part=None)
+        View-->>Browser: Пустая форма (HTML)
+        
+    else Сценарий "Редактирование"
+        User->>Browser: GET /edit?id=1
+        Browser->>MainCtrl: HTTP Request
+        MainCtrl->>Ctrl: show_form(handler, query)
+        Note over Ctrl: part_data = dict(id=1, ...)
+        Ctrl->>View: render_form(part=dict)
+        View-->>Browser: Заполненная форма (HTML)
+    end
+    
+    Browser-->>User: Отображение одной и той же View
 ```
 </details>
