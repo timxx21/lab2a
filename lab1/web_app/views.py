@@ -10,6 +10,7 @@ def render_main_page(parts, message=""):
             <td>
                 <a href="/view?id={p['id']}">Подробнее</a>
                 <a href="/edit?id={p['id']}">Редактировать</a>
+                 <a href="/delete?id={p['id']}" onclick="return confirm('Вы уверены, что хотите удалить {p['name']}?')" style="color: red;">Удалить</a>
             </td>
         </tr>
         """

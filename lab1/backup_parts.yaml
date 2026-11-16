@@ -1,7 +1,7 @@
 - id: 1
   article: E5
   name: Помпа
-  price: 5000.0
+  price: 1000.0
   manufacturer: Hepu
   weight: 1.8
   warranty_months: 18
@@ -70,6 +70,34 @@
   warranty_months: 12
 - id: 24
   article: SYNC-6500
+  name: Синхронный фильтр (NEW)
+  price: 6000.0
+  manufacturer: Bosch
+  weight: 1.2
+  warranty_months: 12
+- id: 25
+  article: SYX-13
+  name: Новая классная деталь
+  price: 100.0
+  manufacturer: Дьяченко Индастриз
+  weight: 100.0
+  warranty_months: 9999
+- id: 30
+  article: E15
+  name: f
+  price: 1.0
+  manufacturer: ff
+  weight: 1.0
+  warranty_months: 1
+- id: 33
+  article: E16
+  name: f2
+  price: 1.0
+  manufacturer: ff
+  weight: 1.0
+  warranty_months: 1
+- id: 34
+  article: SYNC-8340
   name: Синхронный фильтр (NEW)
   price: 6000.0
   manufacturer: Bosch

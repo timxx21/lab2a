@@ -125,6 +125,33 @@ class EditController:
         handler.end_headers()
         handler.wfile.write(html.encode('utf-8'))
 
+    class DeleteController:
+        """Контроллер для удаления записи (Пункт 5)."""
+
+        def __init__(self, db_rep):
+            self._db_rep = db_rep
+
+        def handle_delete(self, handler, query):
+            part_id = int(query.get('id', [0])[0])
+            try:
+                # Пытаемся удалить запись
+                self._db_rep.delete(part_id)
+
+                # Если успешно — делаем редирект на главную
+                html = views.render_redirect("/")
+                self._send_html(handler, html)
+
+            except KeyError:
+                handler.send_error(404, "Part not found")
+            except Exception as e:
+                handler.send_error(500, f"Ошибка при удалении: {e}")
+
+        def _send_html(self, handler, html, status=200):
+            handler.send_response(status)
+            handler.send_header('Content-type', 'text/html; charset=utf-8')
+            handler.end_headers()
+            handler.wfile.write(html.encode('utf-8'))
+
 class MainController(BaseHTTPRequestHandler):
     # Инициализируем репозиторий один раз при старте
     _conn = DBConnection(host="localhost", user="root", password="pass", database="autoparts")

@@ -537,6 +537,42 @@ classDiagram
 ```
 </details>
 
+<details>
+<summary><b>Пункт 5: Удаление</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Для удаления записи создан отдельный `DeleteController`. Это позволяет разгрузить главный контроллер и сохранить принцип единственной ответственности (SRP). Удаление происходит по ID, полученному из GET-параметра.
+
+```mermaid
+classDiagram
+    class MainController {
+        -PartRepDBAdapter _db_rep
+        -AddController _add_ctrl
+        -EditController _edit_ctrl
+        -DeleteController _del_ctrl
+        +do_GET()
+    }
+    class DeleteController {
+        -PartRepDBAdapter _db_rep
+        +handle_delete(handler, query)
+    }
+    class Views {
+        <<module>>
+        +render_main_page()
+        +render_redirect()
+    }
+    class PartRepository {
+        <<interface>>
+        +delete(id)
+    }
+    
+    MainController --> DeleteController : delegates /delete
+    MainController --> Views
+    DeleteController --> PartRepository : deletes data
+    DeleteController --> Views : renders redirect
+```
+</details>
+
 ### Диаграммы последовальности по пунктам:
 <details>
 <summary><b> Пункт 1: Read / Просмотр </b> (нажмите, чтобы развернуть)</summary>
@@ -706,5 +742,51 @@ sequenceDiagram
     end
     
     Browser-->>User: Отображение одной и той же View
+```
+</details>
+
+<details>
+<summary><b>Пункт 5: Удаление</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Сценарий: Пользователь нажимает "Удалить", подтверждает действие во всплывающем окне, запись удаляется из БД, и происходит редирект на обновленную главную страницу.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant MainCtrl as MainController
+    participant DelCtrl as DeleteController
+    participant Model as PartRepository
+    participant View as Views
+
+    User->>Browser: Клик "Удалить" (id=1)
+    Note over Browser: JS confirm() запрашивает подтверждение
+    User->>Browser: Нажимает "ОК"
+    Browser->>MainCtrl: GET /delete?id=1
+    activate MainCtrl
+    
+    MainCtrl->>DelCtrl: handle_delete(self, query)
+    activate DelCtrl
+    
+    DelCtrl->>Model: delete(1)
+    Model-->>DelCtrl: Успех (запись удалена)
+    
+    DelCtrl->>View: render_redirect("/")
+    View-->>DelCtrl: HTML (редирект)
+    
+    DelCtrl-->>MainCtrl: HTML
+    deactivate DelCtrl
+    
+    MainCtrl-->>Browser: HTTP 200 (Redirect)
+    deactivate MainCtrl
+    
+    Browser->>MainCtrl: GET / (автоматически)
+    MainCtrl->>Model: get_k_n_short_list()
+    Model-->>MainCtrl: list[DTO]
+    MainCtrl->>View: render_main_page(dtos)
+    View-->>MainCtrl: HTML
+    MainCtrl-->>Browser: HTTP 200 (Обновленная таблица)
+    Browser-->>User: Таблица без удаленной записи
 ```
 </details>
