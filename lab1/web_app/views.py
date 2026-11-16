@@ -46,7 +46,7 @@ def render_view_page(part):
     </html>
     """
 
-def render_form(part=None, error=""):
+def render_form(part=None, error="", is_edit=False):
     """
     Универсальная форма (один класс окна).
     Если part=None, поля пустые (режим добавления).
@@ -55,7 +55,6 @@ def render_form(part=None, error=""):
     error_html = f"<p style='color:red; font-weight:bold;'>{error}</p>" if error else ""
 
     # Определяем режим и action для формы
-    is_edit = part is not None
     action = "/edit" if is_edit else "/add"
     title = "Редактировать деталь" if is_edit else "Добавить новую деталь"
     button_text = "Обновить" if is_edit else "Сохранить"

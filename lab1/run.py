@@ -1,2 +1,2 @@
-from web_app.controllers import run_server
+from web_app.server import run_server
 run_server()

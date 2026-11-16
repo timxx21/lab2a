@@ -14,8 +14,8 @@ class AddController:
         self._db_rep = db_rep
 
     def show_form(self, handler, error=""):
-        # Передаем part=None, так как это добавление
-        html = views.render_form(part=None, error=error)
+        # Явно указываем is_edit=False
+        html = views.render_form(part=None, error=error, is_edit=False)
         self._send_html(handler, html)
 
     def handle_post(self, handler):
@@ -40,7 +40,8 @@ class AddController:
             # При ошибке возвращаем форму с введенными данными
             part_data = {k: form.get(k, [''])[0] for k in
                          ['article', 'name', 'price', 'manufacturer', 'weight', 'warranty_months']}
-            html = views.render_form(error=str(e))
+            # При ошибке тоже явно передаем is_edit=False
+            html = views.render_form(part_data, error=str(e), is_edit=False)
             self._send_html(handler, html)
 
     def _send_html(self, handler, html, status=200):
@@ -70,8 +71,8 @@ class EditController:
                 'weight': part.weight,
                 'warranty_months': part.warranty_months
             }
-            # Передаем данные, форма заполнится
-            html = views.render_form(part=part_dict)
+            # Явно указываем is_edit=True
+            html = views.render_form(part=part_dict, is_edit=True)
             self._send_html(handler, html)
         except KeyError:
             handler.send_error(404, "Part not found")
@@ -114,7 +115,8 @@ class EditController:
                 'weight': form.get('weight', [0])[0],
                 'warranty_months': form.get('warranty_months', [0])[0]
             }
-            html = views.render_form(part_dict, error=str(e))
+            # При ошибке тоже явно передаем is_edit=True
+            html = views.render_form(part_dict, error=str(e), is_edit=True)
             self._send_html(handler, html)
 
     def _send_html(self, handler, html, status=200):
@@ -196,8 +198,3 @@ class MainController(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html.encode('utf-8'))
 
-def run_server():
-    server_address = ('', 8000)
-    httpd = HTTPServer(server_address, MainController)
-    print("Сервер запущен на http://localhost:8000")
-    httpd.serve_forever()
