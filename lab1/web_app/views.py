@@ -1,4 +1,4 @@
-def render_main_page(parts, message=""):
+def render_main_page(parts, message="", min_price="", sort_field=""):
     rows = ""
     for p in parts:
         rows += f"""
@@ -20,9 +20,26 @@ def render_main_page(parts, message=""):
     <head><meta charset="utf-8"><title>Автозапчасти</title></head>
     <body>
         <h1>Список запчастей</h1>
-        <p>{message}</p>
+        
+        <form method="GET" action="/" style="margin-bottom: 20px; padding: 10px; background: #f0f0f0;">
+            <label>Цена от: <input type="number" step="0.01" name="min_price" value="{min_price}"></label>
+            
+            <label>Сортировать по: 
+                <select name="sort">
+                    <option value="">Без сортировки</option>
+                    <option value="article" {"selected" if sort_field == "article" else ""}>Артикулу</option>
+                    <option value="price" {"selected" if sort_field == "price" else ""}>Цене</option>
+                    <option value="name" {"selected" if sort_field == "name" else ""}>Названию</option>
+                </select>
+            </label>
+            
+            <button type="submit">Применить</button>
+            <a href="/" style="margin-left: 10px;">Сбросить</a>
+        </form>
+
         <a href="/add" style="display:inline-block; margin-bottom: 10px; padding: 5px 10px; border: 1px solid #ccc; text-decoration: none;">Добавить запись</a>
-        <table border="1">
+        
+        <table border="1" cellpadding="5" style="border-collapse: collapse;">
             <tr><th>ID</th><th>Артикул</th><th>Название</th><th>Цена</th><th>Действие</th></tr>
             {rows}
         </table>

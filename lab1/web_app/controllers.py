@@ -1,9 +1,9 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 # Импортируем наши репозитории и сущности
 from lab1.autopartsLab1 import (
-    DBConnection, PartRepDB, PartRepDBAdapter, Part
+    DBConnection, PartRepDB, PartRepDBAdapter, Part, FilterSortDecorator
 )
 from . import views
 
@@ -166,10 +166,32 @@ class MainController(BaseHTTPRequestHandler):
         query = parse_qs(parsed_path.query)
 
         if path == '/':
-            # Чтение списка (Read)
-            count = self._db_rep.get_count()
-            dtos = self._db_rep.get_k_n_short_list(count, 1)
-            html = views.render_main_page(dtos)
+            # Читаем параметры фильтрации из URL (если есть)
+            min_price = query.get('min_price', [''])[0]
+            sort_field = query.get('sort', [''])[0]
+
+            # Базовый репозиторий (БД)
+            active_rep = self._db_rep
+
+            # Если применены фильтры — оборачиваем в Декоратор из ЛР2!
+            if min_price or sort_field:
+                filter_fn = None
+                if min_price:
+                    # Фильтр работает с DTO (ShortPartDTO), который возвращает репозиторий
+                    filter_fn = lambda dto: dto['price'] >= float(min_price)
+
+                active_rep = FilterSortDecorator(
+                    wrapped=active_rep,
+                    filter_fn=filter_fn,
+                    sort_key=sort_field if sort_field else None
+                )
+
+            # Получаем данные (либо из БД напрямую, либо из Декоратора)
+            count = active_rep.get_count()
+            dtos = active_rep.get_k_n_short_list(count, 1)
+
+            # Рендерим страницу, передавая текущие значения для формы
+            html = views.render_main_page(dtos, min_price=min_price, sort_field=sort_field)
             self._send_html(html)
 
         elif path == '/view':

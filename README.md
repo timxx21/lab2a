@@ -573,6 +573,34 @@ classDiagram
 ```
 </details>
 
+<details>
+<summary><b>Пункт 6 и 7: Фильтрация и Сортировка (Декоратор)</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Для фильтрации и сортировки мы переиспользуем паттерн Декоратор из ЛР2. Главный контроллер оборачивает базовый репозиторий БД в декоратор, передавая ему параметры из URL.
+
+```mermaid
+classDiagram
+    class MainController {
+        -PartRepDBAdapter _db_rep
+        +do_GET()
+    }
+    class FilterSortDecorator {
+        -filter_fn
+        -sort_key
+        +get_k_n_short_list()
+        +get_count()
+    }
+    class PartRepository {
+        <<interface>>
+    }
+    
+    MainController ..> FilterSortDecorator : creates (if filters exist)
+    FilterSortDecorator o-- PartRepository : wraps
+    PartRepository <|-- PartRepDBAdapter
+```
+</details>
+
 ### Диаграммы последовальности по пунктам:
 <details>
 <summary><b> Пункт 1: Read / Просмотр </b> (нажмите, чтобы развернуть)</summary>
@@ -788,5 +816,29 @@ sequenceDiagram
     View-->>MainCtrl: HTML
     MainCtrl-->>Browser: HTTP 200 (Обновленная таблица)
     Browser-->>User: Таблица без удаленной записи
+```
+</details>
+
+<details>
+<summary><b>Пункты 6 и 7: Фильтрация и Сортировка</b> (нажмите, чтобы развернуть)</summary>
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant MainCtrl as MainController
+    participant Decorator as FilterSortDecorator
+    participant DB as PartRepDBAdapter
+    
+    User->>Browser: Вводит фильтр (GET /?min_price=2000&sort=price)
+    Browser->>MainCtrl: HTTP Request (с query)
+    MainCtrl->>MainCtrl: Создает лямбда-фильтр
+    MainCtrl->>Decorator: FilterSortDecorator(DB, filter, sort)
+    MainCtrl->>Decorator: get_k_n_short_list()
+    Decorator->>DB: get_k_n_short_list() (получить ВСЕ)
+    DB-->>Decorator: list[DTO]
+    Decorator->>Decorator: Отфильтровать и отсортировать
+    Decorator-->>MainCtrl: Отфильтрованный list[DTO]
+    MainCtrl-->>Browser: HTML (только нужные записи)
 ```
 </details>
