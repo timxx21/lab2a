@@ -82,13 +82,6 @@
   manufacturer: Дьяченко Индастриз
   weight: 100.0
   warranty_months: 9999
-- id: 33
-  article: E16
-  name: f2
-  price: 1.0
-  manufacturer: ff
-  weight: 1.0
-  warranty_months: 1
 - id: 34
   article: SYNC-8340
   name: Синхронный фильтр (NEW)
@@ -112,6 +105,13 @@
   warranty_months: 12
 - id: 38
   article: SYNC-5319
+  name: Синхронный фильтр (NEW)
+  price: 6000.0
+  manufacturer: Bosch
+  weight: 1.2
+  warranty_months: 12
+- id: 39
+  article: SYNC-5536
   name: Синхронный фильтр (NEW)
   price: 6000.0
   manufacturer: Bosch
