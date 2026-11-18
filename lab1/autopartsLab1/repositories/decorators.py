@@ -29,25 +29,34 @@ class PartRepositoryDecorator(PartRepository):
     def add_with_id(self, id_: int, part) -> int:
         return self._wrapped.add_with_id(id_, part)
 
+
 class FilterSortDecorator(PartRepositoryDecorator):
     """
     добавляет фильтр и сортировку в
     get_k_n_short_list и get_count.
     Работает поверх любого PartRepository.
 
-    ranges: {поле_dto: (min, max)} — числовой диапазон "от и до".
-    Пустое значение (None, "") означает отсутствие границы,
-    поэтому пустые поля не применяют фильтр.
+    ranges:      {поле_dto: (min, max)} — числовой диапазон "от и до".
+    text_ranges: {поле_dto: (min, max)} — строковый (лексикографический)
+                 диапазон "от и до" — для артикулов и других текстовых полей.
+
+    Пустое значение (None, "" или строка из пробелов) означает отсутствие
+    границы, поэтому незаполненное поле не сужает выборку. Все активные
+    фильтры применяются совместно (логическое И), затем — сортировка.
     """
 
     def __init__(self, wrapped: PartRepository,
-                 filter_fn=None, sort_key=None, ranges=None):
+                 filter_fn=None, sort_key=None, ranges=None, text_ranges=None):
         super().__init__(wrapped)
         self._filter = filter_fn
         self._sort_key = sort_key
         self._ranges = {
             field: (self._to_number(low), self._to_number(high))
             for field, (low, high) in (ranges or {}).items()
+        }
+        self._text_ranges = {
+            field: (self._to_text(low), self._to_text(high))
+            for field, (low, high) in (text_ranges or {}).items()
         }
 
     @staticmethod
@@ -59,9 +68,24 @@ class FilterSortDecorator(PartRepositoryDecorator):
         except (TypeError, ValueError):
             raise ValueError(f"Некорректное значение фильтра: {value!r}")
 
+    @staticmethod
+    def _to_text(value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        return str(value).strip()
+
     def _matches_ranges(self, dto: ShortPartDTO) -> bool:
         for field, (low, high) in self._ranges.items():
             value = float(dto[field])
+            if low is not None and value < low:
+                return False
+            if high is not None and value > high:
+                return False
+        return True
+
+    def _matches_text_ranges(self, dto: ShortPartDTO) -> bool:
+        for field, (low, high) in self._text_ranges.items():
+            value = str(dto[field])
             if low is not None and value < low:
                 return False
             if high is not None and value > high:
@@ -80,6 +104,8 @@ class FilterSortDecorator(PartRepositoryDecorator):
             items = [d for d in items if self._filter(d)]
         if self._ranges:
             items = [d for d in items if self._matches_ranges(d)]
+        if self._text_ranges:
+            items = [d for d in items if self._matches_text_ranges(d)]
         if self._sort_key is not None:
             items = sorted(items, key=lambda d: d[self._sort_key])
         return items

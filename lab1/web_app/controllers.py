@@ -236,6 +236,8 @@ class MainController(BaseHTTPRequestHandler):
             min_price = query.get('min_price', [''])[0]
             min_id = query.get('min_id', [''])[0]
             max_id = query.get('max_id', [''])[0]
+            min_article = query.get('min_article', [''])[0]
+            max_article = query.get('max_article', [''])[0]
             sort_field = query.get('sort', [''])[0]
 
             # Базовый репозиторий (БД)
@@ -249,22 +251,31 @@ class MainController(BaseHTTPRequestHandler):
             if min_id or max_id:
                 ranges['id'] = (min_id, max_id)
 
+            # Лексикографический диапазон по артикулу (больше X — меньше Y)
+            text_ranges = {}
+            if min_article or max_article:
+                text_ranges['article'] = (min_article, max_article)
+
             # Если применены фильтры — оборачиваем в Декоратор из ЛР2!
-            if ranges or sort_field:
+            if ranges or text_ranges or sort_field:
                 active_rep = FilterSortDecorator(
                     wrapped=active_rep,
                     sort_key=sort_field if sort_field else None,
                     ranges=ranges,
+                    text_ranges=text_ranges,
                 )
 
             # Получаем данные (либо из БД напрямую, либо из Декоратора)
             count = active_rep.get_count()
-            dtos = active_rep.get_k_n_short_list(count, 1)
+            # Если фильтр ничего не оставил — не запрашиваем k=0 (нарушает контракт
+            # get_k_n_short_list), а просто показываем пустую таблицу.
+            dtos = active_rep.get_k_n_short_list(count, 1) if count > 0 else []
 
             # Рендерим страницу, передавая текущие значения для формы
             html = views.render_main_page(
                 dtos, min_price=min_price, sort_field=sort_field,
                 min_id=min_id, max_id=max_id,
+                min_article=min_article, max_article=max_article,
             )
             self._send_html(html)
 

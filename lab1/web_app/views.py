@@ -1,5 +1,5 @@
 def render_main_page(parts, message="", min_price="", sort_field="",
-                     min_id="", max_id=""):
+                     min_id="", max_id="", min_article="", max_article=""):
     rows = ""
     for p in parts:
         rows += f"""
@@ -23,22 +23,35 @@ def render_main_page(parts, message="", min_price="", sort_field="",
         <h1>Список запчастей</h1>
         
         <form method="GET" action="/" style="margin-bottom: 20px; padding: 10px; background: #f0f0f0;">
-            <label>ID от: <input type="number" name="min_id" value="{min_id}"></label>
-            <label>ID до: <input type="number" name="max_id" value="{max_id}"></label>
-            
-            <label>Цена от: <input type="number" step="0.01" name="min_price" value="{min_price}"></label>
-            
-            <label>Сортировать по: 
-                <select name="sort">
-                    <option value="">Без сортировки</option>
-                    <option value="article" {"selected" if sort_field == "article" else ""}>Артикулу</option>
-                    <option value="price" {"selected" if sort_field == "price" else ""}>Цене</option>
-                    <option value="name" {"selected" if sort_field == "name" else ""}>Названию</option>
-                </select>
-            </label>
-            
-            <button type="submit">Применить</button>
-            <a href="/" style="margin-left: 10px;">Сбросить</a>
+            <div style="margin-bottom: 8px;">
+                <label>ID от: <input type="number" name="min_id" value="{min_id}"></label>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label>ID до: <input type="number" name="max_id" value="{max_id}"></label>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label>Цена от: <input type="number" step="0.01" name="min_price" value="{min_price}"></label>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label>Артикул от: <input type="text" name="min_article" value="{min_article}"></label>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label>Артикул до: <input type="text" name="max_article" value="{max_article}"></label>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label>Сортировать по: 
+                    <select name="sort">
+                        <option value="">Без сортировки</option>
+                        <option value="article" {"selected" if sort_field == "article" else ""}>Артикулу</option>
+                        <option value="price" {"selected" if sort_field == "price" else ""}>Цене</option>
+                        <option value="name" {"selected" if sort_field == "name" else ""}>Названию</option>
+                    </select>
+                </label>
+            </div>
+            <div>
+                <button type="submit">Применить</button>
+                <a href="/" style="margin-left: 10px;">Сбросить</a>
+            </div>
         </form>
 
         <a href="/add" style="display:inline-block; margin-bottom: 10px; padding: 5px 10px; border: 1px solid #ccc; text-decoration: none;">Добавить запись</a>
