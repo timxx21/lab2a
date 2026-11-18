@@ -6,7 +6,7 @@
 <summary><b>🌟 СКВОЗНАЯ АРХИТЕКТУРА ПРОЕКТА (ЛР1 + ЛР2 + ЛР3)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
-На этой диаграмме представлена полная картина взаимодействия всех компонентов. Схема разделена на три логических слоя (сверху вниз): **Веб-слой (MVC)**, **Слой хранения (Репозитории)** и **Доменный слой (Бизнес-логика)**.
+Полная картина взаимодействия всех компонентов. В ЛР3 добавлен Real-Time слой (SSE + Database Triggers), который работает параллельно с MVC.
 
 ```mermaid
 classDiagram
@@ -19,11 +19,13 @@ classDiagram
             -Refresher _refresher
             +do_GET()
             +do_POST()
-            +refresh_data()
         }
         class AddController
         class EditController
         class DeleteController
+        class EventController {
+            +handle_sse(handler)
+        }
         class Views {
             <<module>>
             +render_main_page()
@@ -31,30 +33,37 @@ classDiagram
         }
     }
 
-    MainController --> AddController : delegates /add
-    MainController --> EditController : delegates /edit
-    MainController --> DeleteController : delegates /delete
+    MainController --> AddController : delegates
+    MainController --> EditController : delegates
+    MainController --> DeleteController : delegates
+    MainController --> EventController : delegates /events
     MainController ..> Views : renders HTML
 
-    %% ================== СЛОЙ 2: ХРАНЕНИЕ (РЕПОЗИТОРИИ) ==================
+    %% ================== СЛОЙ 2: REAL-TIME (OBSERVER / PUB-SUB) ==================
+    namespace RealTime_Layer {
+        class EventBus {
+            <<Singleton>>
+            +subscribe() Queue
+            +notify(event)
+        }
+        class DBWatcher {
+            <<Thread>>
+            +watcher_loop()
+        }
+    }
+
+    EventController --> EventBus : subscribes
+    DBWatcher --> EventBus : notifies
+    DBWatcher ..> DBConnection : polls system_status
+
+    %% ================== СЛОЙ 3: ХРАНЕНИЕ (РЕПОЗИТОРИИ) ==================
     namespace StorageLayer_Repositories {
         class PartRepository {
             <<interface>>
             +get_by_id()
             +add(part)
-            +add_with_id()
-            +get_k_n_short_list()
-            +update(id, part)
-            +delete(id)
-            +get_count()
         }
-
-        class CompositePartRepository
         class FilterSortDecorator
-        class PartRepositoryDecorator {
-            <<abstract>>
-        }
-        
         class PartRepDBAdapter
         class PartRepFile {
             <<abstract>>
@@ -63,60 +72,40 @@ classDiagram
         class PartRepYAML
     }
 
-    %% Связи внутри слоя хранения
-    PartRepository <|-- CompositePartRepository
-    PartRepository <|-- PartRepositoryDecorator
-    PartRepositoryDecorator <|-- FilterSortDecorator
+    PartRepository <|-- FilterSortDecorator
     PartRepository <|-- PartRepDBAdapter
     PartRepository <|-- PartRepFile
     PartRepFile <|-- PartRepJSON
     PartRepFile <|-- PartRepYAML
 
-    %% Связи от Веб-слоя к Хранилищу
     MainController ..> PartRepository : requests data
     MainController ..> FilterSortDecorator : uses for UI
 
-    %% ================== СЛОЙ 3: ДОМЕН (ЛР1) ==================
+    %% ================== СЛОЙ 4: ДОМЕН (ЛР1) ==================
     namespace DomainLayer_LR1 {
         class Part {
-            -str _article
-            -float _price
             +attach(obs)
             +detach_all()
         }
-        class LiveProjection {
-            +update(subject)
-        }
+        class LiveProjection
         class ShortPartDTO {
             <<immutable>>
         }
-        class Refresher {
-            +make(part, producer)
-            +purge()
-        }
+        class Refresher
         class DBConnection {
             <<Singleton>>
         }
-        class Serializer {
-            <<interface>>
-        }
     }
 
-    %% Связи от Хранилища к Домену
     PartRepDBAdapter ..> Part : creates/returns
-    PartRepDBAdapter --> DBConnection : uses (Singleton)
-    PartRepFile ..> Part : creates/returns
-    PartRepFile --> Serializer : uses (Strategy)
+    PartRepDBAdapter --> DBConnection : uses
+    PartRepFile ..> Part : creates
     PartRepository ..> ShortPartDTO : returns
     
-    %% Связи внутри Домена
-    Part "1" o-- "*" LiveProjection : notify (Observer)
+    Part "1" o-- "*" LiveProjection : notify
     LiveProjection --> "1" ShortPartDTO : holds
     Refresher o-- "*" LiveProjection : manages
-
-    %% Связь Веб-слоя с Refresher (Сброс кэша)
     MainController --> Refresher : uses (purge)
-
 ```
 </details>
 
@@ -588,6 +577,73 @@ classDiagram
 ```
 </details>
 
+<details>
+<summary><b>Пункт 8*: Real-Time Observer + SSE</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Для реализации real-time обновлений (отслеживания изменений из внешних источников) была построена распределенная архитектура на базе паттернов Observer и Pub/Sub.
+1. **MySQL:** Триггеры отслеживают изменения в таблице `parts` и обновляют `system_status`.
+2. **Watcher (Python Thread):** Фоновый поток опрашивает `system_status`. При изменении вызывает `notify()` на `EventBus`.
+3. **EventBus (Singleton):** Шина событий, хранящая очереди подписчиков (`queue.Queue`).
+4. **SSE Controller:** Держит соединение с браузером и передает данные в формате `text/event-stream`.
+
+```mermaid
+classDiagram
+    namespace Database_MySQL {
+        class parts {
+            +id
+            +article
+            +name
+        }
+        class system_status {
+            +id
+            +last_update
+        }
+        class Trigger_AFTER_INSERT {
+            <<Database Trigger>>
+        }
+    }
+    parts ..> Trigger_AFTER_INSERT : fires
+    Trigger_AFTER_INSERT ..> system_status : updates last_update
+
+    namespace Python_Backend {
+        class DBWatcher {
+            <<Thread>>
+            -last_update
+            +watcher_loop()
+        }
+        class EventBus {
+            <<Singleton>>
+            -_listeners : list~Queue~
+            +subscribe() Queue
+            +unsubscribe(q)
+            +notify(event)
+        }
+        class EventController {
+            +handle_sse(handler)
+        }
+        class MainController {
+            +do_GET()
+        }
+    }
+
+    DBWatcher --> system_status : SELECT (Polling)
+    DBWatcher --> EventBus : notify("data_changed")
+    EventBus <-- EventController : subscribe()
+    MainController --> EventController : delegates /events
+
+    namespace Frontend_Browser {
+        class EventSource_JS {
+            <<JavaScript>>
+            +onmessage(e)
+        }
+    }
+    
+    EventController ..> EventSource_JS : SSE (text/event-stream)
+    EventSource_JS ..> BrowserPage : window.location.reload()
+```
+</details>
+
 ### Диаграммы последовальности по пунктам:
 <details>
 <summary><b> Пункт 1: Read / Просмотр </b> (нажмите, чтобы развернуть)</summary>
@@ -827,5 +883,61 @@ sequenceDiagram
     Decorator->>Decorator: Отфильтровать и отсортировать
     Decorator-->>MainCtrl: Отфильтрованный list[DTO]
     MainCtrl-->>Browser: HTML (только нужные записи)
+```
+</details>
+
+<details>
+<summary><b>Пункт 8*: Real-Time Update</b> (нажмите, чтобы развернуть)</summary>
+
+<br>
+Сценарий: Внешний скрипт (например, `demo.py`) меняет данные в БД. Веб-сервер узнает об этом и автоматически перезагружает страницу у пользователя.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant SSE_Ctrl as EventController
+    participant Bus as EventBus
+    participant Watcher as DBWatcher (Thread)
+    participant DB as MySQL Database
+    participant External as demo.py (External)
+
+    %% 1. Установка соединения
+    User->>Browser: Открывает страницу
+    Browser->>SSE_Ctrl: GET /events
+    activate SSE_Ctrl
+    SSE_Ctrl->>Bus: subscribe()
+    Bus-->>SSE_Ctrl: Queue
+    Note over SSE_Ctrl: Соединение удерживается открытым (SSE)
+
+    %% 2. Фоновый процесс
+    loop Каждые 2 секунды
+        Watcher->>DB: SELECT last_update FROM system_status
+        DB-->>Watcher: timestamp
+    end
+
+    %% 3. Внешнее изменение
+    External->>DB: INSERT INTO parts (...)
+    activate DB
+    DB->>DB: Trigger AFTER INSERT
+    DB->>DB: UPDATE system_status SET last_update = NOW()
+    deactivate DB
+
+    %% 4. Обнаружение изменения
+    Watcher->>DB: SELECT last_update FROM system_status
+    DB-->>Watcher: NEW timestamp!
+    Watcher->>Bus: notify("data_changed")
+    activate Bus
+    Bus->>SSE_Ctrl: queue.put("data_changed")
+    deactivate Bus
+
+    %% 5. Отправка в браузер
+    SSE_Ctrl->>Browser: data: {"type": "data_changed"}
+    deactivate SSE_Ctrl
+    
+    %% 6. Обновление UI
+    Note over Browser: JS EventSource ловит сообщение
+    Browser->>Browser: window.location.reload()
+    Browser->>User: Страница обновилась (новая деталь в таблице)
 ```
 </details>
