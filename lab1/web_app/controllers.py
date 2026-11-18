@@ -1,11 +1,51 @@
-from http.server import BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import queue
 from urllib.parse import urlparse, parse_qs
+from lab1.autopartsLab1.observer import event_bus
+
+import json
+
+import socket
+# Отключаем системные ошибки разрыва соединения в Windows
+socket.setdefaulttimeout(10.0)
 
 # Импортируем наши репозитории и сущности
 from lab1.autopartsLab1 import (
-    DBConnection, PartRepDB, PartRepDBAdapter, Part, FilterSortDecorator, Refresher
+    DBConnection, PartRepDB, PartRepDBAdapter, Part, FilterSortDecorator, Refresher,
 )
 from . import views
+
+class EventController:
+    """Контроллер для Server-Sent Events (SSE)"""
+
+    def handle_sse(self, handler):
+        # 1. Заголовки для SSE
+        handler.send_response(200)
+        handler.send_header('Content-Type', 'text/event-stream')
+        handler.send_header('Cache-Control', 'no-cache')
+        handler.send_header('Connection', 'keep-alive')
+        handler.end_headers()
+
+        # 2. Подписываемся на шину
+        q = event_bus.subscribe()
+        try:
+            while True:
+                try:
+                    event = q.get(timeout=10.0)
+                    msg = f"data: {json.dumps({'type': event})}\n\n"
+                    handler.wfile.write(msg.encode('utf-8'))
+                    handler.wfile.flush()
+                except queue.Empty:
+                    try:
+                        # Безопасный пинг
+                        handler.wfile.write(b": keep-alive\n\n")
+                        handler.wfile.flush()
+                    except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+                        break  # Браузер ушел, выходим
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            event_bus.unsubscribe(q)
 
 class AddController:
     """Контроллер для обработки операций добавления."""
@@ -45,10 +85,14 @@ class AddController:
             self._send_html(handler, html)
 
     def _send_html(self, handler, html, status=200):
-        handler.send_response(status)
-        handler.send_header('Content-type', 'text/html; charset=utf-8')
-        handler.end_headers()
-        handler.wfile.write(html.encode('utf-8'))
+        try:
+            handler.send_response(status)
+            handler.send_header('Content-type', 'text/html; charset=utf-8')
+            handler.end_headers()
+            handler.wfile.write(html.encode('utf-8'))
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            # Если браузер закрыл соединение, мы просто игнорируем это
+            pass
 
 
 class EditController:
@@ -120,10 +164,14 @@ class EditController:
             self._send_html(handler, html)
 
     def _send_html(self, handler, html, status=200):
-        handler.send_response(status)
-        handler.send_header('Content-type', 'text/html; charset=utf-8')
-        handler.end_headers()
-        handler.wfile.write(html.encode('utf-8'))
+        try:
+            handler.send_response(status)
+            handler.send_header('Content-type', 'text/html; charset=utf-8')
+            handler.end_headers()
+            handler.wfile.write(html.encode('utf-8'))
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            # Если браузер закрыл соединение, мы просто игнорируем это
+            pass
 
 class DeleteController:
         """Контроллер для удаления записи (Пункт 5)."""
@@ -147,10 +195,14 @@ class DeleteController:
                 handler.send_error(500, f"Ошибка при удалении: {e}")
 
         def _send_html(self, handler, html, status=200):
-            handler.send_response(status)
-            handler.send_header('Content-type', 'text/html; charset=utf-8')
-            handler.end_headers()
-            handler.wfile.write(html.encode('utf-8'))
+            try:
+                handler.send_response(status)
+                handler.send_header('Content-type', 'text/html; charset=utf-8')
+                handler.end_headers()
+                handler.wfile.write(html.encode('utf-8'))
+            except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+                # Если браузер закрыл вкладку или нажал "Стоп", просто игнорируем
+                pass
 
 class MainController(BaseHTTPRequestHandler):
     # Инициализируем репозиторий один раз при старте
@@ -160,8 +212,14 @@ class MainController(BaseHTTPRequestHandler):
     _add_ctrl = AddController(_db_rep)
     _edit_ctrl = EditController(_db_rep)
     _del_ctrl = DeleteController(_db_rep)
-
+    _event_ctrl = EventController()
     _refresher = Refresher()
+
+    def handle_one_request(self):
+        try:
+            super().handle_one_request()
+        except (ConnectionAbortedError, ConnectionResetError):
+            pass  # Игнорируем системные ошибки Windows при отключении клиента
 
     def do_GET(self):
         # Принудительно обновляем соединение с БД, чтобы сбросить кэш транзакции
@@ -244,6 +302,10 @@ class MainController(BaseHTTPRequestHandler):
         elif path == '/delete':
             self._del_ctrl.handle_delete(self, query)
 
+        elif path == '/events':
+            self._event_ctrl = EventController()
+            self._event_ctrl.handle_sse(self)
+
         else:
             self.send_error(404, "Page not found")
 
@@ -269,9 +331,10 @@ class MainController(BaseHTTPRequestHandler):
             self.send_error(404, "Page not found")
 
     def _send_html(self, html, status=200):
-        """Вспомогательный метод для отправки HTML в браузер"""
-        self.send_response(status)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(html.encode('utf-8'))
-
+        try:
+            self.send_response(status)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(html.encode('utf-8'))
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            pass # Игнорируем разрыв соединения

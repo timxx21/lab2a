@@ -18,15 +18,6 @@
     "warranty_months": 12
   },
   {
-    "id": 34,
-    "article": "SYNC-8340",
-    "name": "Синхронный фильтр (NEW)",
-    "price": 6000.0,
-    "manufacturer": "Bosch",
-    "weight": 1.2,
-    "warranty_months": 12
-  },
-  {
     "id": 36,
     "article": "SYNC-1531",
     "name": "Синхронный фильтр (NEW)",
@@ -54,8 +45,17 @@
     "warranty_months": 12
   },
   {
-    "id": 39,
-    "article": "SYNC-5536",
+    "id": 45,
+    "article": "SYNC-2735",
+    "name": "Синхронный фильтр (NEW)",
+    "price": 6000.0,
+    "manufacturer": "Bosch",
+    "weight": 1.2,
+    "warranty_months": 12
+  },
+  {
+    "id": 48,
+    "article": "SYNC-1596",
     "name": "Синхронный фильтр (NEW)",
     "price": 6000.0,
     "manufacturer": "Bosch",

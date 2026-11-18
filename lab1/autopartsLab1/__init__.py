@@ -3,7 +3,7 @@
 # --- ЛР1 ---
 from .part import Part
 from .dto import ShortPartDTO
-from .observer import LiveProjection, Refresher
+from .observer import LiveProjection, Refresher, EventBus
 from .projections import ShortPart
 from .parsers import PartParser
 from .partmanager import PartManager
@@ -35,6 +35,7 @@ __all__ = [
     "PartRepFile", "PartRepJSON", "PartRepYAML",
     "DBConnection", "PartRepDB", "PartRepDBAdapter",
     "PartRepositoryDecorator", "FilterSortDecorator", "CompositePartRepository",
+    "EventBus"
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

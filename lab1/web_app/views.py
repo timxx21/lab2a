@@ -43,6 +43,21 @@ def render_main_page(parts, message="", min_price="", sort_field=""):
             <tr><th>ID</th><th>Артикул</th><th>Название</th><th>Цена</th><th>Действие</th></tr>
             {rows}
         </table>
+         <script>
+            const evtSource = new EventSource("/events");
+            
+            evtSource.onmessage = function(e) {{
+                const data = JSON.parse(e.data);
+                if (data.type === "data_changed") {{
+                    console.log("БД изменилась! Обновляем страницу...");
+                    window.location.reload(); 
+                }}
+            }};
+            
+            evtSource.onerror = function() {{
+                console.error("Ошибка SSE. Переподключение...");
+            }};
+        </script>
     </body>
     </html>
     """

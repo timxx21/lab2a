@@ -1,4 +1,8 @@
 from .dto import ShortPartDTO, _DTO_TOKEN
+import threading
+import time
+import queue
+import mysql.connector
 
 class LiveProjection:
 
@@ -119,3 +123,78 @@ class Refresher:
     def __len__(self):
         return len(self._live)
 
+class EventBus:
+    """Синглтон для управления событиями."""
+    _instance = None
+    _listeners = []
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._listeners = []
+        return cls._instance
+
+    def subscribe(self) -> queue.Queue:
+        q = queue.Queue()
+        self._listeners.append(q)
+        return q
+
+    def unsubscribe(self, q: queue.Queue):
+        if q in self._listeners:
+            self._listeners.remove(q)
+
+    def notify(self, event: str):
+        """Отправить событие всем SSE-клиентам."""
+        for q in self._listeners:
+            q.put(event)
+
+
+# Глобальный объект шины событий
+event_bus = EventBus()
+
+
+def start_db_watcher():
+    """
+    Фоновый поток (Thread), который опрашивает таблицу system_status.
+    Как только время меняется (сработал триггер) — вызывает notify().
+    """
+
+    def watcher_loop():
+        last_update = None
+
+        # Ждем пару секунд, чтобы БД успела подняться при старте
+        time.sleep(2)
+
+        while True:
+            try:
+                # Создаем ОТДЕЛЬНОЕ соединение для этого потока
+                conn = mysql.connector.connect(
+                    host="localhost", user="root", password="pass", database="autoparts"
+                )
+                cursor = conn.cursor(dictionary=True)
+
+                while True:
+                    cursor.execute("SELECT last_update FROM system_status WHERE id = 1")
+                    row = cursor.fetchone()
+                    conn.commit()
+
+                    if row:
+                        current_update = str(row['last_update'])
+
+                        # Если время изменилось — кричим!
+                        if last_update is not None and current_update != last_update:
+                            print(f"\n[DB Watcher] Обнаружено изменение в БД: {current_update}")
+                            event_bus.notify("data_changed")
+
+                        last_update = current_update
+
+                    time.sleep(2)  # Проверяем раз в 2 секунды
+
+            except mysql.connector.Error as e:
+                print(f"[DB Watcher] Потеряно соединение с БД: {e}. Переподключение...")
+                time.sleep(5)  # Ждем и пробуем снова
+
+    # Запускаем поток
+    thread = threading.Thread(target=watcher_loop, daemon=True)
+    thread.start()
+    print("Фоновый наблюдатель за БД запущен.")

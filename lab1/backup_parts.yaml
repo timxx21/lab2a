@@ -33,13 +33,6 @@
   manufacturer: Hepu
   weight: 1.8
   warranty_months: 18
-- id: 7
-  article: SYNC-1
-  name: Синхронный фильтр (NEW)
-  price: 2000.0
-  manufacturer: Bosch
-  weight: 1.2
-  warranty_months: 12
 - id: 14
   article: SYNC-1652
   name: Синхронный фильтр (NEW)
@@ -77,18 +70,11 @@
   warranty_months: 12
 - id: 25
   article: SYX-13
-  name: Новая классная деталь
+  name: Новая классная детал ь
   price: 100.0
   manufacturer: Дьяченко Индастриз
   weight: 100.0
   warranty_months: 9999
-- id: 34
-  article: SYNC-8340
-  name: Синхронный фильтр (NEW)
-  price: 6000.0
-  manufacturer: Bosch
-  weight: 1.2
-  warranty_months: 12
 - id: 36
   article: SYNC-1531
   name: Синхронный фильтр (NEW)
@@ -110,8 +96,22 @@
   manufacturer: Bosch
   weight: 1.2
   warranty_months: 12
-- id: 39
-  article: SYNC-5536
+- id: 40
+  article: '1'
+  name: '1'
+  price: 1.0
+  manufacturer: '1'
+  weight: 1.0
+  warranty_months: 1
+- id: 45
+  article: SYNC-2735
+  name: Синхронный фильтр (NEW)
+  price: 6000.0
+  manufacturer: Bosch
+  weight: 1.2
+  warranty_months: 12
+- id: 48
+  article: SYNC-1596
   name: Синхронный фильтр (NEW)
   price: 6000.0
   manufacturer: Bosch
