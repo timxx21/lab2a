@@ -63,7 +63,12 @@ classDiagram
             +get_by_id()
             +add(part)
         }
-        class FilterSortDecorator
+        class FilterSortDecorator {
+            -_ranges
+            -_sort_key
+            +_matches_ranges(dto)
+            +get_k_n_short_list()
+        }
         class PartRepDBAdapter
         class PartRepFile {
             <<abstract>>
@@ -287,31 +292,46 @@ classDiagram
 <br>
 Паттерн Декоратор позволяет добавить фильтрацию и сортировку поверх любого репозитория, не меняя код самого репозитория.
 
+`FilterSortDecorator` поддерживает фильтр типа «Больше X, меньше Y»: вместо одной лямбды вызывающий код передает словарь `ranges` вида `{'id': ('10', '50'), 'price': ('2000', None)}`. Каждая граница приводится к числу (`_to_number`); пустое значение (`None` или `""`) означает отсутствие границы, поэтому незаполненное поле не сужает выборку. Если введено нечисловое значение, декоратор выбрасывает `ValueError`. Фильтрация по `filter_fn` и по `ranges` применяется совместно, затем результат сортируется по `sort_key` (если задан) и только после этого нарезается на страницу `k/n`.
+
 ```mermaid
 classDiagram
     class PartRepository {
         <<abstract>>
+        +get_by_id(id)
         +get_k_n_short_list(k, n)
         +get_count()
+        +update(id, part)
+        +delete(id)
         +add_with_id(id, part)
     }
     class PartRepositoryDecorator {
         <<abstract>>
         #PartRepository _wrapped
+        +get_by_id(id)
         +get_k_n_short_list(k, n)
         +get_count()
-        +add_with_id(id, part)
+        +update(id, part)
+        +delete(id)
     }
     class FilterSortDecorator {
         -filter_fn
         -sort_key
+        -dict _ranges
+        +_to_number(value)
+        +_matches_ranges(dto) bool
+        +_fetch_all() list
+        +_apply() list
         +get_k_n_short_list(k, n)
         +get_count()
     }
     PartRepository <|-- PartRepositoryDecorator
     PartRepositoryDecorator <|-- FilterSortDecorator
     PartRepositoryDecorator o-- PartRepository : wraps
+    FilterSortDecorator ..> ShortPartDTO : filters/sorts
 ```
+
+`ranges` хранит уже приведенные к `float` границы: `{field: (low, high)}`. Метод `_matches_ranges` проверяет, что значение поля DTO попадает в интервал, а `_apply` возвращает полный отфильтрованный и отсортированный список, из которого `get_k_n_short_list` и `get_count` уже берут нужный срез.
 
 </details>
 
@@ -553,28 +573,41 @@ classDiagram
 <summary><b>Пункт 6 и 7: Фильтрация и Сортировка (Декоратор)</b> (нажмите, чтобы развернуть)</summary>
 
 <br>
-Для фильтрации и сортировки мы переиспользуем паттерн Декоратор из ЛР2. Главный контроллер оборачивает базовый репозиторий БД в декоратор, передавая ему параметры из URL.
+Для фильтрации и сортировки мы переиспользуем паттерн Декоратор из ЛР2. Главный контроллер не фильтрует данные сам: он лишь собирает из GET-параметров словарь `ranges` (`{'id': (min_id, max_id), 'price': (min_price, None)}`) и имя поля сортировки, а затем оборачивает базовый репозиторий БД в `FilterSortDecorator`. Значения границ передаются строками прямо из полей формы и приводятся к числам внутри декоратора.
 
 ```mermaid
 classDiagram
     class MainController {
         -PartRepDBAdapter _db_rep
         +do_GET()
+        +_send_html(html)
     }
     class FilterSortDecorator {
         -filter_fn
         -sort_key
-        +get_k_n_short_list()
+        -dict _ranges
+        +_to_number(value)
+        +_matches_ranges(dto) bool
+        +_fetch_all() list
+        +_apply() list
+        +get_k_n_short_list(k, n)
         +get_count()
     }
     class PartRepository {
         <<interface>>
     }
-    
-    MainController ..> FilterSortDecorator : creates (if filters exist)
+    class Views {
+        <<module>>
+        +render_main_page(parts, min_price, sort_field, min_id, max_id)
+    }
+
+    MainController ..> FilterSortDecorator : creates (if ranges or sort)
+    MainController ..> Views : passes current filter values
     FilterSortDecorator o-- PartRepository : wraps
     PartRepository <|-- PartRepDBAdapter
 ```
+
+Форма на главной странице (`render_main_page`) содержит поля `min_id`, `max_id`, `min_price` и `sort`; после применения фильтра контроллер передает их текущие значения обратно в шаблон, чтобы пользователь видел активные условия.
 </details>
 
 <details>
@@ -865,6 +898,9 @@ sequenceDiagram
 <details>
 <summary><b>Пункты 6 и 7: Фильтрация и Сортировка</b> (нажмите, чтобы развернуть)</summary>
 
+<br>
+Сценарий: пользователь задает диапазоны в форме главной страницы («ID от / до», «Цена от») и выбирает поле сортировки. Контроллер превращает параметры в `ranges` и передает их декоратору; сам декоратор приводит границы к числам, отсекает записи вне диапазона и сортирует результат.
+
 ```mermaid
 sequenceDiagram
     actor User
@@ -872,18 +908,37 @@ sequenceDiagram
     participant MainCtrl as MainController
     participant Decorator as FilterSortDecorator
     participant DB as PartRepDBAdapter
-    
-    User->>Browser: Вводит фильтр (GET /?min_price=2000&sort=price)
-    Browser->>MainCtrl: HTTP Request (с query)
-    MainCtrl->>MainCtrl: Создает лямбда-фильтр
-    MainCtrl->>Decorator: FilterSortDecorator(DB, filter, sort)
-    MainCtrl->>Decorator: get_k_n_short_list()
-    Decorator->>DB: get_k_n_short_list() (получить ВСЕ)
-    DB-->>Decorator: list[DTO]
-    Decorator->>Decorator: Отфильтровать и отсортировать
-    Decorator-->>MainCtrl: Отфильтрованный list[DTO]
-    MainCtrl-->>Browser: HTML (только нужные записи)
+
+    User->>Browser: ID от 10 до 50, цена от 2000, сортировка по цене
+    Browser->>MainCtrl: GET /?min_id=10&max_id=50&min_price=2000&sort=price
+    MainCtrl->>MainCtrl: ranges = {'id': ('10', '50'), 'price': ('2000', None)}
+
+    alt ranges или sort заданы
+        MainCtrl->>Decorator: FilterSortDecorator(DB, sort_key='price', ranges=ranges)
+        Note over Decorator: _to_number() превращает границы в float,<br/>пустая граница = None (без ограничения)
+    end
+
+    MainCtrl->>Decorator: get_count()
+    Decorator->>Decorator: _apply()
+    Decorator->>DB: get_count()
+    DB-->>Decorator: total
+    Decorator->>DB: get_k_n_short_list(total, 1) (получить ВСЕ)
+    DB-->>Decorator: list[ShortPartDTO]
+    Decorator->>Decorator: _matches_ranges() — отсеять вне диапазонов
+    Decorator->>Decorator: sorted() по sort_key
+    Decorator-->>MainCtrl: count (после фильтрации)
+
+    MainCtrl->>Decorator: get_k_n_short_list(count, 1)
+    Decorator->>Decorator: _apply() → срез [0:count]
+    Decorator-->>MainCtrl: отфильтрованный list[ShortPartDTO]
+
+    MainCtrl->>MainCtrl: render_main_page(dtos, min_price, sort_field, min_id, max_id)
+    MainCtrl-->>Browser: HTML (таблица + форма с активными условиями)
+    Browser-->>User: Только записи в заданных диапазонах, отсортированные
 ```
+
+Если пользователь ввел нечисловое значение, `_to_number` выбрасывает `ValueError` с сообщением о некорректном фильтре; пустые поля формы в `ranges` не попадают и выборку не сужают.
+
 </details>
 
 <details>
