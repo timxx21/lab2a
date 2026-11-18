@@ -34,13 +34,39 @@ class FilterSortDecorator(PartRepositoryDecorator):
     добавляет фильтр и сортировку в
     get_k_n_short_list и get_count.
     Работает поверх любого PartRepository.
+
+    ranges: {поле_dto: (min, max)} — числовой диапазон "от и до".
+    Пустое значение (None, "") означает отсутствие границы,
+    поэтому пустые поля не применяют фильтр.
     """
 
     def __init__(self, wrapped: PartRepository,
-                 filter_fn=None, sort_key=None):
+                 filter_fn=None, sort_key=None, ranges=None):
         super().__init__(wrapped)
         self._filter = filter_fn
         self._sort_key = sort_key
+        self._ranges = {
+            field: (self._to_number(low), self._to_number(high))
+            for field, (low, high) in (ranges or {}).items()
+        }
+
+    @staticmethod
+    def _to_number(value):
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            raise ValueError(f"Некорректное значение фильтра: {value!r}")
+
+    def _matches_ranges(self, dto: ShortPartDTO) -> bool:
+        for field, (low, high) in self._ranges.items():
+            value = float(dto[field])
+            if low is not None and value < low:
+                return False
+            if high is not None and value > high:
+                return False
+        return True
 
     def _fetch_all(self) -> list[ShortPartDTO]:
         total = self._wrapped.get_count()
@@ -52,6 +78,8 @@ class FilterSortDecorator(PartRepositoryDecorator):
         items = self._fetch_all()
         if self._filter is not None:
             items = [d for d in items if self._filter(d)]
+        if self._ranges:
+            items = [d for d in items if self._matches_ranges(d)]
         if self._sort_key is not None:
             items = sorted(items, key=lambda d: d[self._sort_key])
         return items

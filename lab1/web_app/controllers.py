@@ -234,22 +234,27 @@ class MainController(BaseHTTPRequestHandler):
         if path == '/':
             # Читаем параметры фильтрации из URL (если есть)
             min_price = query.get('min_price', [''])[0]
+            min_id = query.get('min_id', [''])[0]
+            max_id = query.get('max_id', [''])[0]
             sort_field = query.get('sort', [''])[0]
 
             # Базовый репозиторий (БД)
             active_rep = self._db_rep
 
-            # Если применены фильтры — оборачиваем в Декоратор из ЛР2!
-            if min_price or sort_field:
-                filter_fn = None
-                if min_price:
-                    # Фильтр работает с DTO (ShortPartDTO), который возвращает репозиторий
-                    filter_fn = lambda dto: dto['price'] >= float(min_price)
+            # Контроллер не знает, как фильтровать: он лишь описывает
+            # диапазоны, а применяет их декоратор.
+            ranges = {}
+            if min_price:
+                ranges['price'] = (min_price, None)
+            if min_id or max_id:
+                ranges['id'] = (min_id, max_id)
 
+            # Если применены фильтры — оборачиваем в Декоратор из ЛР2!
+            if ranges or sort_field:
                 active_rep = FilterSortDecorator(
                     wrapped=active_rep,
-                    filter_fn=filter_fn,
-                    sort_key=sort_field if sort_field else None
+                    sort_key=sort_field if sort_field else None,
+                    ranges=ranges,
                 )
 
             # Получаем данные (либо из БД напрямую, либо из Декоратора)
@@ -257,7 +262,10 @@ class MainController(BaseHTTPRequestHandler):
             dtos = active_rep.get_k_n_short_list(count, 1)
 
             # Рендерим страницу, передавая текущие значения для формы
-            html = views.render_main_page(dtos, min_price=min_price, sort_field=sort_field)
+            html = views.render_main_page(
+                dtos, min_price=min_price, sort_field=sort_field,
+                min_id=min_id, max_id=max_id,
+            )
             self._send_html(html)
 
         elif path == '/view':

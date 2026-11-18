@@ -1,4 +1,5 @@
-def render_main_page(parts, message="", min_price="", sort_field=""):
+def render_main_page(parts, message="", min_price="", sort_field="",
+                     min_id="", max_id=""):
     rows = ""
     for p in parts:
         rows += f"""
@@ -22,6 +23,9 @@ def render_main_page(parts, message="", min_price="", sort_field=""):
         <h1>Список запчастей</h1>
         
         <form method="GET" action="/" style="margin-bottom: 20px; padding: 10px; background: #f0f0f0;">
+            <label>ID от: <input type="number" name="min_id" value="{min_id}"></label>
+            <label>ID до: <input type="number" name="max_id" value="{max_id}"></label>
+            
             <label>Цена от: <input type="number" step="0.01" name="min_price" value="{min_price}"></label>
             
             <label>Сортировать по: 
